@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User farm profiles
+    match /farms/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Top-level Goats collection
+    match /goats/{goatId} {
+      allow read, write: if request.auth != null && resource.data.farmUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.farmUid == request.auth.uid;
+    }
+
+    // Devices collection
+    match /devices/{deviceId} {
+      allow read, write: if request.auth != null && resource.data.farmUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.farmUid == request.auth.uid;
+    }
+
+    // GPS History collection
+    match /gpsHistory/{historyId} {
+      allow read: if request.auth != null && resource.data.farmUid == request.auth.uid;
+      allow write: if request.auth != null && resource.data.farmUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.farmUid == request.auth.uid;
+    }
+
+    // Alerts collection
+    match /alerts/{alertId} {
+      allow read, write: if request.auth != null && resource.data.farmUid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.farmUid == request.auth.uid;
+    }
+  }
+}

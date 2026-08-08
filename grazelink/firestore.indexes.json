@@ -1,0 +1,63 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "goats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "goats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmUid", "order": "ASCENDING" },
+        { "fieldPath": "goatId", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "goats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmUid", "order": "ASCENDING" },
+        { "fieldPath": "healthStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "goats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmUid", "order": "ASCENDING" },
+        { "fieldPath": "lat", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "alerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmUid", "order": "ASCENDING" },
+        { "fieldPath": "dismissed", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "alerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "farmUid", "order": "ASCENDING" },
+        { "fieldPath": "dismissed", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gpsHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "goatId", "order": "ASCENDING" },
+        { "fieldPath": "farmUid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
