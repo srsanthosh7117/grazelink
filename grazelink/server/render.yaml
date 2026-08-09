@@ -2,7 +2,7 @@ services:
   - type: web
     name: grazelink-api
     runtime: node
-    rootDir: .
+    rootDir: grazelink/server
     plan: free
     buildCommand: npm ci && npm run build
     startCommand: npm start

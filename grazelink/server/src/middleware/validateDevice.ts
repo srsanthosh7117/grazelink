@@ -32,7 +32,10 @@ export async function validateDevice(req: Request, res: Response, next: NextFunc
     return next();
   }
 
-  const apiKey = (req.headers['x-api-key'] || req.headers['authorization']) as string | undefined;
+  // Firmware sends apiKey inside the JSON body (TrackerRecord::ToJson);
+  // the x-api-key / Authorization headers are accepted as an alternative
+  // for other clients.
+  const apiKey = (req.headers['x-api-key'] || req.headers['authorization'] || req.body?.apiKey) as string | undefined;
   const deviceId = req.body?.deviceId as string | undefined;
 
   if (!deviceId || typeof deviceId !== 'string') {

@@ -2,15 +2,20 @@ import { adminDb } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { TelemetryPayload } from '../middleware/validatePayload.js';
 
-export async function evaluateTelemetryAlerts(payload: TelemetryPayload, farmUid: string) {
+export async function evaluateTelemetryAlerts(
+  payload: TelemetryPayload,
+  farmUid: string,
+  normalized: { temperature: number; collarId: string },
+) {
   const alertsRef = adminDb.collection('alerts');
+  const { temperature, collarId } = normalized;
 
   // Low Battery Alert
   if (payload.battery < 20) {
     await alertsRef.add({
       type: 'lowBattery',
       severity: 'warning',
-      message: `Collar ${payload.collarId} on goat ${payload.goatId} is at low battery (${payload.battery}%).`,
+      message: `Collar ${collarId} on goat ${payload.goatId} is at low battery (${payload.battery}%).`,
       goatId: payload.goatId,
       deviceId: payload.deviceId,
       farmUid,
@@ -21,7 +26,7 @@ export async function evaluateTelemetryAlerts(payload: TelemetryPayload, farmUid
   }
 
   // High Temperature Alert
-  if (payload.temperature > 40) {
+  if (temperature > 40) {
     await alertsRef.add({
       type: 'highTemperature',
       severity: 'critical',

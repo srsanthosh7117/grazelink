@@ -7,6 +7,71 @@ import { evaluateTelemetryAlerts } from '../services/alertService.js';
 
 const router = Router();
 
+// Normalise optional fields the collar firmware does not always send
+// (TrackerRecord only carries deviceId/apiKey/goatId/lat/lng/accuracy/
+// battery/movement/timestamp/gpsStatus).
+function normalizePayload(payload: TelemetryPayload) {
+  const collarId =
+    typeof payload.collarId === 'string' && payload.collarId.trim() !== '' ? payload.collarId : payload.deviceId;
+  const temperature = typeof payload.temperature === 'number' ? payload.temperature : 0;
+  const signalStrength = typeof payload.signalStrength === 'number' ? payload.signalStrength : 0;
+  return { collarId, temperature, signalStrength };
+}
+
+/**
+ * POST /api/device/location
+ * One-time GPS registration handshake (STATE: REGISTER in firmware).
+ * A live fix flips the device to registrationStatus: 'gps_confirmed' and
+ * stores its initial location; a NO_FIX payload returns 409 so the collar
+ * retries on the next wake.
+ */
+router.post('/location', validateDevice, async (req: Request, res: Response) => {
+  try {
+    const { deviceId, goatId, latitude, longitude, gpsStatus } = req.body as Partial<TelemetryPayload>;
+
+    if (!deviceId || typeof deviceId !== 'string') {
+      return res.status(400).json({ success: false, error: 'Invalid or missing deviceId' });
+    }
+
+    const hasFix =
+      gpsStatus === 'FIX' && typeof latitude === 'number' && typeof longitude === 'number' && (latitude !== 0 || longitude !== 0);
+
+    if (!hasFix) {
+      return res.status(409).json({ success: false, error: 'NO_FIX — retry registration on next wake' });
+    }
+
+    const devicesRef = adminDb.collection('devices');
+    const deviceSnap = await devicesRef.where('deviceId', '==', deviceId).limit(1).get();
+
+    if (!deviceSnap.empty) {
+      await deviceSnap.docs[0].ref.update({
+        registrationStatus: 'gps_confirmed',
+        initialLatitude: latitude,
+        initialLongitude: longitude,
+        status: 'Online',
+        goatId: typeof goatId === 'string' ? goatId : deviceSnap.docs[0].data().goatId || null,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    } else {
+      await devicesRef.add({
+        deviceId,
+        collarId: deviceId,
+        goatId: typeof goatId === 'string' ? goatId : null,
+        status: 'Online',
+        registrationStatus: 'gps_confirmed',
+        initialLatitude: latitude,
+        initialLongitude: longitude,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    return res.status(200).json({ success: true, message: 'GPS fix confirmed' });
+  } catch (error) {
+    console.error('Error processing GPS registration:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error processing registration' });
+  }
+});
+
 /**
  * POST /api/device/upload
  * The primary ESP32 telemetry ingestion endpoint.
@@ -14,6 +79,7 @@ const router = Router();
 router.post('/upload', validateDevice, validatePayload, async (req: Request, res: Response) => {
   try {
     const payload = req.body as TelemetryPayload;
+    const { collarId, temperature, signalStrength } = normalizePayload(payload);
 
     // 1. Locate goat document by goatId or collarId
     const goatsRef = adminDb.collection('goats');
@@ -36,8 +102,8 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         lat: payload.latitude,
         lng: payload.longitude,
         battery: payload.battery,
-        temperature: payload.temperature,
-        signalStrength: payload.signalStrength,
+        temperature,
+        signalStrength,
         status: 'Online',
         gpsStatus: 'Active',
         lastSeen: new Date().toLocaleTimeString(),
@@ -51,8 +117,8 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
       longitude: payload.longitude,
       speed: payload.speed ?? 0,
       battery: payload.battery,
-      temperature: payload.temperature,
-      signalStrength: payload.signalStrength,
+      temperature,
+      signalStrength,
       timestamp: payload.timestamp || new Date().toISOString(),
       deviceId: payload.deviceId,
       goatId: payload.goatId,
@@ -69,11 +135,11 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
       const deviceData = deviceDoc.data();
       const updates: Record<string, unknown> = {
         battery: payload.battery,
-        wifiSignal: payload.signalStrength,
-        temperature: payload.temperature,
+        wifiSignal: signalStrength,
+        temperature,
         lastSync: new Date().toLocaleTimeString(),
         status: 'Online',
-        collarId: payload.collarId,
+        collarId,
         goatId: payload.goatId,
         updatedAt: FieldValue.serverTimestamp(),
       };
@@ -92,13 +158,13 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     } else {
       await devicesRef.add({
         deviceId: payload.deviceId,
-        collarId: payload.collarId,
+        collarId,
         goatId: payload.goatId,
         farmUid,
         firmwareVersion: 'v2.1.0',
         battery: payload.battery,
-        wifiSignal: payload.signalStrength,
-        temperature: payload.temperature,
+        wifiSignal: signalStrength,
+        temperature,
         lastSync: new Date().toLocaleTimeString(),
         status: 'Online',
         registrationStatus: 'gps_confirmed',
@@ -109,7 +175,7 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     }
 
     // 4. Evaluate automated alerts
-    await evaluateTelemetryAlerts(payload, farmUid);
+    await evaluateTelemetryAlerts(payload, farmUid, { temperature, collarId });
 
     return res.status(200).json({
       success: true,
