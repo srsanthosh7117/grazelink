@@ -65,7 +65,9 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     const deviceSnap = await devicesRef.where('deviceId', '==', payload.deviceId).limit(1).get();
 
     if (!deviceSnap.empty) {
-      await deviceSnap.docs[0].ref.update({
+      const deviceDoc = deviceSnap.docs[0];
+      const deviceData = deviceDoc.data();
+      const updates: Record<string, unknown> = {
         battery: payload.battery,
         wifiSignal: payload.signalStrength,
         temperature: payload.temperature,
@@ -74,7 +76,19 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         collarId: payload.collarId,
         goatId: payload.goatId,
         updatedAt: FieldValue.serverTimestamp(),
-      });
+      };
+
+      // GPS registration handshake: the dashboard registers a collar as
+      // 'pending' and blocks goat-linking until this flip to 'gps_confirmed'.
+      // The first live fix completes the handshake and is stored as the
+      // collar's initial location.
+      if (deviceData.registrationStatus !== 'gps_confirmed') {
+        updates.registrationStatus = 'gps_confirmed';
+        updates.initialLatitude = payload.latitude;
+        updates.initialLongitude = payload.longitude;
+      }
+
+      await deviceDoc.ref.update(updates);
     } else {
       await devicesRef.add({
         deviceId: payload.deviceId,
@@ -87,6 +101,9 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         temperature: payload.temperature,
         lastSync: new Date().toLocaleTimeString(),
         status: 'Online',
+        registrationStatus: 'gps_confirmed',
+        initialLatitude: payload.latitude,
+        initialLongitude: payload.longitude,
         createdAt: FieldValue.serverTimestamp(),
       });
     }

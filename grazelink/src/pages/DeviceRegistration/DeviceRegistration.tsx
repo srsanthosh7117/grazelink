@@ -19,6 +19,9 @@ const labelClass = 'text-xs font-semibold text-muted dark:text-dark-muted';
 const BREED_OPTIONS = ['Saanen', 'Alpine', 'Nubian', 'Boer', 'Toggenburg', 'Jamunapari', 'Malabari', 'Beetal'];
 const SHED_OPTIONS = ['Shed A', 'Shed B', 'Shed C', 'Shed D'];
 
+/** Default location used when a user simulates a GPS fix (no collar hardware). */
+const SIMULATED_COORDS = { lat: 11.2163, lng: 78.1637 };
+
 export default function DeviceRegistration() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -132,6 +135,31 @@ export default function DeviceRegistration() {
     setGpsCoords(null);
     setSelectedDeviceId('');
     setManualDeviceId('');
+  };
+
+  const simulateGpsFix = async () => {
+    if (!pendingDevice) return;
+    setSubmitting(true);
+    setError('');
+    try {
+      await updateDevice(pendingDevice.id, {
+        registrationStatus: 'gps_confirmed',
+        initialLatitude: SIMULATED_COORDS.lat,
+        initialLongitude: SIMULATED_COORDS.lng,
+        status: 'Online',
+        lastSync: new Date().toISOString(),
+      });
+      setGpsCoords(SIMULATED_COORDS);
+      setGpsState('confirmed');
+      setSelectedDeviceId(pendingDevice.id);
+      showToast('success', `${pendingDevice.deviceId} GPS fix confirmed (simulated).`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not simulate the GPS fix.';
+      setError(message);
+      showToast('error', message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const copyApiKey = async () => {
@@ -418,6 +446,14 @@ export default function DeviceRegistration() {
                     <p className="mt-2 rounded-xl bg-amber-500/10 p-2 text-[11px] text-amber-700 dark:text-amber-400">
                       Saving the goat is blocked until the GPS fix is confirmed.
                     </p>
+                    <button
+                      type="button"
+                      onClick={simulateGpsFix}
+                      disabled={submitting}
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-6 py-2.5 text-sm font-semibold text-primary transition-all hover:scale-[1.02] hover:bg-primary/20 disabled:opacity-60"
+                    >
+                      <FiMapPin /> Simulate GPS fix (demo — no collar needed)
+                    </button>
                   </>
                 )}
 

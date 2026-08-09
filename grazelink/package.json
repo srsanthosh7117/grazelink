@@ -2,12 +2,40 @@
   "name": "grazelink",
   "private": true,
   "version": "1.0.0",
+  "description": "GrazeLink - smart collar monitoring for your herd",
+  "author": "Santhosh S",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "electron:dev": "npm run build && electron .",
+    "electron:build": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.grazelink.app",
+    "productName": "GrazeLink",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "!node_modules/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "GrazeLink"
+    }
   },
   "dependencies": {
     "firebase": "^10.13.0",
@@ -36,6 +64,8 @@
     "@typescript-eslint/parser": "^7.16.1",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.9",
@@ -43,5 +73,10 @@
     "tailwindcss": "^3.4.7",
     "typescript": "^5.5.4",
     "vite": "^5.3.5"
+  },
+  "allowScripts": {
+    "electron@43.3.0": true,
+    "electron-winstaller@5.4.0": true,
+    "@electron/rebuild@4.2.0": true
   }
 }
