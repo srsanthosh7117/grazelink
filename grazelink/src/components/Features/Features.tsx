@@ -12,7 +12,7 @@ const FEATURES = [
   {
     icon: FiMapPin,
     title: 'Live locations',
-    description: 'See every goat on the map in real time — no more walking the whole pasture to find one.',
+    description: 'See every livestock on the map in real time — no more walking the whole pasture to find one.',
   },
   {
     icon: FiHardDrive,
@@ -53,7 +53,7 @@ export default function Features() {
             All of it, in one place
           </h2>
           <p className="mt-4 text-base leading-relaxed text-muted dark:text-dark-muted">
-            One collar per goat, one dashboard, zero guesswork.
+            One collar per livestock, one dashboard, zero guesswork.
           </p>
         </div>
 

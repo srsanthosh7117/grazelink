@@ -10,10 +10,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from './useAuth';
-import { Goat } from '@/types/goat';
+import { Livestock } from '@/types/livestock';
 
-function toGoat(doc: DocumentSnapshot<DocumentData>): Goat {
-  return { id: doc.id, ...doc.data() } as Goat;
+function toLivestock(doc: DocumentSnapshot<DocumentData>): Livestock {
+  return { id: doc.id, ...doc.data() } as Livestock;
 }
 
 function createdAtMs(value: unknown): number {
@@ -33,9 +33,9 @@ function createdAtMs(value: unknown): number {
  * required) and sorts client-side, so the list works regardless of which
  * Firestore indexes are deployed. The whole herd is streamed in real time.
  */
-export function useGoats() {
+export function useLivestock() {
   const { user } = useAuth();
-  const [goats, setGoats] = useState<Goat[]>([]);
+  const [livestock, setLivestock] = useState<Livestock[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export function useGoats() {
 
   useEffect(() => {
     if (!user) {
-      setGoats([]);
+      setLivestock([]);
       setLoading(false);
       setTotalCount(0);
       setHasMore(false);
@@ -55,13 +55,13 @@ export function useGoats() {
     }
 
     setLoading(true);
-    const ref = collection(db, 'goats');
+    const ref = collection(db, 'livestock');
     const q = query(ref, where('farmUid', '==', user.uid));
 
     getCountFromServer(q)
       .then((snap) => setTotalCount(snap.data().count))
       .catch((err) => {
-        console.warn('Goats count query failed:', err);
+        console.warn('Livestock count query failed:', err);
         setTotalCount(null);
       });
 
@@ -69,9 +69,9 @@ export function useGoats() {
       q,
       (snapshot) => {
         const list = snapshot.docs
-          .map(toGoat)
+          .map(toLivestock)
           .sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt));
-        setGoats(list);
+        setLivestock(list);
         lastDocRef.current = snapshot.docs[snapshot.docs.length - 1] ?? null;
         setHasMore(false);
         setLoading(false);
@@ -97,5 +97,5 @@ export function useGoats() {
 
   const reset = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  return { goats, loading, loadingMore, error, totalCount, hasMore, loadMore, reset };
+  return { livestock, loading, loadingMore, error, totalCount, hasMore, loadMore, reset };
 }

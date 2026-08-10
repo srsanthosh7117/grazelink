@@ -10,22 +10,22 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Goat, GoatPayload } from '@/types/goat';
+import { Livestock, LivestockPayload } from '@/types/livestock';
 import { withTimeout } from '@/utils/withTimeout';
 
 const TIMEOUT_MESSAGE =
   'This is taking too long to reach the database. Please check your internet connection and Firestore configuration, then try again.';
 
-const goatsRef = collection(db, 'goats');
+const livestockRef = collection(db, 'livestock');
 
-/** Generates a unique goat ID like GT-0001 */
-export async function generateGoatId(farmUid: string): Promise<string> {
-  const q = query(goatsRef, where('farmUid', '==', farmUid));
+/** Generates a unique livestock ID like GT-0001 */
+export async function generateLivestockId(farmUid: string): Promise<string> {
+  const q = query(livestockRef, where('farmUid', '==', farmUid));
   const snap = await getDocs(q);
   let nextNum = 1;
   for (const docSnap of snap.docs) {
-    const goatId = docSnap.data().goatId as string | undefined;
-    const match = typeof goatId === 'string' ? goatId.match(/GT-(\d+)/) : null;
+    const livestockId = docSnap.data().livestockId as string | undefined;
+    const match = typeof livestockId === 'string' ? livestockId.match(/GT-(\d+)/) : null;
     if (match) {
       const num = parseInt(match[1], 10);
       if (num + 1 > nextNum) nextNum = num + 1;
@@ -35,10 +35,10 @@ export async function generateGoatId(farmUid: string): Promise<string> {
 }
 
 /** One-shot fetch of the entire herd. Use sparingly on pages that need full data (reports/analytics). */
-export async function fetchAllGoats(farmUid: string): Promise<Goat[]> {
-  const q = query(goatsRef, where('farmUid', '==', farmUid));
+export async function fetchAllLivestock(farmUid: string): Promise<Livestock[]> {
+  const q = query(livestockRef, where('farmUid', '==', farmUid));
   const snap = await getDocs(q);
-  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Goat);
+  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Livestock);
   return list.sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt));
 }
 
@@ -52,24 +52,24 @@ function createdAtMs(value: unknown): number {
   return Number.isNaN(t) ? 0 : t;
 }
 
-/** Registers a goat under the given farm (uid) in top-level goats collection. */export async function registerGoat(farmUid: string, payload: GoatPayload) {
+/** Registers a livestock under the given farm (uid) in top-level livestock collection. */export async function registerLivestock(farmUid: string, payload: LivestockPayload) {
   return withTimeout(
-    addDoc(goatsRef, { ...payload, farmUid, createdAt: serverTimestamp() }),
+    addDoc(livestockRef, { ...payload, farmUid, createdAt: serverTimestamp() }),
     15000,
     TIMEOUT_MESSAGE,
   );
 }
 
-export async function updateGoat(
+export async function updateLivestock(
   farmUid: string,
-  goatDocId: string,
-  payload: Partial<GoatPayload>,
+  livestockDocId: string,
+  payload: Partial<LivestockPayload>,
 ) {
-  const ref = doc(db, 'goats', goatDocId);
+  const ref = doc(db, 'livestock', livestockDocId);
   return withTimeout(updateDoc(ref, payload), 15000, TIMEOUT_MESSAGE);
 }
 
-export async function deleteGoat(farmUid: string, goatDocId: string) {
-  const ref = doc(db, 'goats', goatDocId);
+export async function deleteLivestock(farmUid: string, livestockDocId: string) {
+  const ref = doc(db, 'livestock', livestockDocId);
   return withTimeout(deleteDoc(ref), 15000, TIMEOUT_MESSAGE);
 }

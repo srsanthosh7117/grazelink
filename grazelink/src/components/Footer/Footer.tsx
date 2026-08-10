@@ -30,7 +30,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-relaxed">
-              Every goat, one dashboard. GPS collars that keep your herd safe, healthy, and in sight.
+              Every livestock, one dashboard. GPS collars that keep your herd safe, healthy, and in sight.
             </p>
             <div className="mt-5 flex items-center gap-3">
               {SOCIALS.map((s) => (

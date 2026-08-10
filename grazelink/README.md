@@ -62,16 +62,16 @@ that same path (keep the filename `logo.svg`, or update the import paths in
 
 **Fully wired:**
 - Firebase Authentication (register/login/logout)
-- Firestore writes for farm profile (on registration) and goat/collar
-  records (on device registration, and delete from the Goats page)
+- Firestore writes for farm profile (on registration) and livestock/collar
+  records (on device registration, and delete from the Livestock page)
 - All routing, protected dashboard routes, responsive layouts, animations
 
 **Scaffolded with mock/placeholder data (by design — these need your real
 backend/device data source):**
 - Dashboard Overview stats (`Overview.tsx`) — replace `MOCK_STATS` with a
   live Firestore query or aggregation
-- Goat Management list (`Goats.tsx`) — replace `MOCK_GOATS` with an
-  `onSnapshot` listener on `farms/{uid}/goats`
+- Livestock Management list (`Livestock.tsx`) — replace `MOCK_GOATS` with an
+  `onSnapshot` listener on `farms/{uid}/livestock`
 - GPS Tracking map (`GPSTracking.tsx`) — replace `MOCK_LOCATIONS` with
   live coordinates from your collar/gateway backend
 - Reports export buttons (`Reports.tsx`) — hook up SheetJS/CSV/PDF
@@ -90,9 +90,9 @@ src/
   components/    Navbar, Hero, Footer, Features, Cards, Forms,
                  About, WhyGrazeLink, Contact, Dashboard, ProtectedRoute
   pages/         Splash, Home, Login, Register, DeviceRegistration,
-                 Dashboard (Overview, Goats, GPSTracking, Reports,
+                 Dashboard (Overview, Livestock, GPSTracking, Reports,
                  Settings, AccountCenter), Legal
-  services/      firebase.ts, auth.ts, goats.ts
+  services/      firebase.ts, auth.ts, livestock.ts
   hooks/         useAuth.ts
   context/       AuthContext.tsx
 ```

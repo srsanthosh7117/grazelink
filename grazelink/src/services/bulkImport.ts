@@ -8,7 +8,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { GoatPayload } from '@/types/goat';
+import { LivestockPayload } from '@/types/livestock';
 
 const BREEDS = ['Saanen', 'Alpine', 'Nubian', 'Boer', 'Toggenburg', 'Jamunapari', 'Malabari', 'Beetal'];
 const FIRST_NAMES = ['Bella', 'Daisy', 'Nala', 'Luna', 'Pepper', 'Milo', 'Rocky', 'Lucky', 'Sally', 'Buddy', 'Misty', 'Olive', 'Ruby', 'Sage', 'Willow', 'Ivy', 'Poppy', 'Hazel', 'Coco', 'Ziggy'];
@@ -42,7 +42,7 @@ function isoDaysAgo(days: number) {
 
 export interface ImportRow {
   [key: string]: string | number | undefined;
-  goatId?: string;
+  livestockId?: string;
   collarId?: string;
   name?: string;
   breed?: string;
@@ -62,15 +62,15 @@ export interface ImportRow {
   remarks?: string;
 }
 
-/** Finds the next free GT-xxxxx number so re-imports don't overwrite existing bulk goats. */
-export async function getNextGoatStart(farmUid: string): Promise<number> {
+/** Finds the next free GT-xxxxx number so re-imports don't overwrite existing bulk livestock. */
+export async function getNextLivestockStart(farmUid: string): Promise<number> {
   try {
-    const q = query(collection(db, 'goats'), where('farmUid', '==', farmUid));
+    const q = query(collection(db, 'livestock'), where('farmUid', '==', farmUid));
     const snap = await getDocs(q);
     let next = 1;
     for (const docSnap of snap.docs) {
-      const goatId = docSnap.data().goatId as string | undefined;
-      const match = typeof goatId === 'string' ? goatId.match(/^GT-(\d+)$/) : null;
+      const livestockId = docSnap.data().livestockId as string | undefined;
+      const match = typeof livestockId === 'string' ? livestockId.match(/^GT-(\d+)$/) : null;
       if (match) {
         const num = parseInt(match[1], 10);
         if (num + 1 > next) next = num + 1;
@@ -82,14 +82,14 @@ export async function getNextGoatStart(farmUid: string): Promise<number> {
   }
 }
 
-/** Generates `count` synthetic goat rows starting from `start`. */
-export function generateGoatRows(count: number, start: number, opts: BulkImportOptions = {}): ImportRow[] {
+/** Generates `count` synthetic livestock rows starting from `start`. */
+export function generateLivestockRows(count: number, start: number, opts: BulkImportOptions = {}): ImportRow[] {
   const rows: ImportRow[] = [];
   for (let i = 0; i < count; i++) {
     const num = start + i;
     const ageMonths = 2 + Math.floor(Math.random() * 58);
     rows.push({
-      goatId: `GT-${pad(num, 5)}`,
+      livestockId: `GT-${pad(num, 5)}`,
       collarId: `CL-${pad(num, 5)}`,
       name: `${randomItem(FIRST_NAMES)}-${pad(num, 3)}`,
       breed: randomItem(BREEDS),
@@ -110,7 +110,7 @@ export function generateGoatRows(count: number, start: number, opts: BulkImportO
 }
 
 /** Parses a CSV file (header row = field names) into import rows. */
-export function parseGoatCsv(text: string): ImportRow[] {
+export function parseLivestockCsv(text: string): ImportRow[] {
   const lines = text.trim().split(/\r?\n/).filter(Boolean);
   if (lines.length < 2) throw new Error('CSV file has no data rows.');
   const headers = lines[0].split(',').map((h) => h.trim());
@@ -136,15 +136,15 @@ function buildPayload(
   index: number,
   farmUid: string,
   opts: BulkImportOptions,
-): GoatPayload & { createdAt: Timestamp } {
+): LivestockPayload & { createdAt: Timestamp } {
   const sheds = opts.sheds && opts.sheds.length ? opts.sheds : DEFAULT_SHEDS;
   const farmName = opts.farmName ?? 'Red valley Farm';
-  const goatId = row.goatId ?? `GT-${pad(index + 1, 5)}`;
+  const livestockId = row.livestockId ?? `GT-${pad(index + 1, 5)}`;
   return {
     farmUid,
-    goatId,
+    livestockId,
     collarId: row.collarId ?? `CL-${pad(index + 1, 5)}`,
-    name: row.name ?? goatId,
+    name: row.name ?? livestockId,
     breed: row.breed ?? '',
     gender: row.gender === 'Male' ? 'Male' : 'Female',
     age: Number(row.age ?? 0),
@@ -165,11 +165,11 @@ function buildPayload(
 }
 
 /**
- * Writes goat rows to Firestore in batches of up to 400 docs, calling
- * onProgress after every batch. Uses the goatId as the document id, so
+ * Writes livestock rows to Firestore in batches of up to 400 docs, calling
+ * onProgress after every batch. Uses the livestockId as the document id, so
  * re-running merges into the same docs instead of duplicating.
  */
-export async function bulkImportGoats(
+export async function bulkImportLivestock(
   farmUid: string,
   rows: ImportRow[],
   opts: BulkImportOptions = {},
@@ -182,8 +182,8 @@ export async function bulkImportGoats(
     const batch = writeBatch(db);
     chunk.forEach((row, offset) => {
       const index = start + offset;
-      const goatId = row.goatId ?? `GT-${pad(index + 1, 5)}`;
-      batch.set(doc(db, 'goats', goatId), buildPayload(row, index, farmUid, opts), { merge: true });
+      const livestockId = row.livestockId ?? `GT-${pad(index + 1, 5)}`;
+      batch.set(doc(db, 'livestock', livestockId), buildPayload(row, index, farmUid, opts), { merge: true });
     });
     await batch.commit();
     done += chunk.length;

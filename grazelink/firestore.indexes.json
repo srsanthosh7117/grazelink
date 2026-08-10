@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "goats",
+      "collectionGroup": "livestock",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "farmUid", "order": "ASCENDING" },
@@ -9,15 +9,15 @@
       ]
     },
     {
-      "collectionGroup": "goats",
+      "collectionGroup": "livestock",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "farmUid", "order": "ASCENDING" },
-        { "fieldPath": "goatId", "order": "DESCENDING" }
+        { "fieldPath": "livestockId", "order": "DESCENDING" }
       ]
     },
     {
-      "collectionGroup": "goats",
+      "collectionGroup": "livestock",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "farmUid", "order": "ASCENDING" },
@@ -25,7 +25,7 @@
       ]
     },
     {
-      "collectionGroup": "goats",
+      "collectionGroup": "livestock",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "farmUid", "order": "ASCENDING" },
@@ -53,7 +53,7 @@
       "collectionGroup": "gpsHistory",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "goatId", "order": "ASCENDING" },
+        { "fieldPath": "livestockId", "order": "ASCENDING" },
         { "fieldPath": "farmUid", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]

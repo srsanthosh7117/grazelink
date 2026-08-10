@@ -3,7 +3,9 @@ import { Request, Response, NextFunction } from 'express';
 export interface TelemetryPayload {
   deviceId: string;
   collarId?: string;
-  goatId: string;
+  livestockId: string;
+  /** Legacy field name sent by collars flashed before the rename. */
+  goatId?: string;
   latitude: number;
   longitude: number;
   battery: number;
@@ -18,13 +20,20 @@ export interface TelemetryPayload {
 }
 
 export function validatePayload(req: Request, res: Response, next: NextFunction) {
-  const { deviceId, goatId, latitude, longitude, battery } = req.body;
+  const { deviceId, latitude, longitude, battery } = req.body;
+
+  // Normalise the livestock identifier, accepting the legacy `goatId` key so
+  // already-flashed collars keep reporting without a firmware update.
+  const livestockId =
+    typeof req.body.livestockId === 'string' && req.body.livestockId.trim() !== ''
+      ? req.body.livestockId
+      : req.body.goatId;
 
   if (!deviceId || typeof deviceId !== 'string') {
     return res.status(400).json({ error: 'Invalid or missing deviceId' });
   }
-  if (!goatId || typeof goatId !== 'string') {
-    return res.status(400).json({ error: 'Invalid or missing goatId' });
+  if (!livestockId || typeof livestockId !== 'string') {
+    return res.status(400).json({ error: 'Invalid or missing livestockId' });
   }
   if (typeof latitude !== 'number' || isNaN(latitude)) {
     return res.status(400).json({ error: 'Invalid or missing latitude' });
@@ -36,5 +45,7 @@ export function validatePayload(req: Request, res: Response, next: NextFunction)
     return res.status(400).json({ error: 'Invalid battery percentage (0-100 expected)' });
   }
 
+  // Surface the normalised id on the body for downstream handlers.
+  req.body.livestockId = livestockId;
   next();
 }

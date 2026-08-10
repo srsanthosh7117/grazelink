@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiCopy, FiCheck, FiMapPin, FiLoader, FiRefreshCw } from 'react-icons/fi';
 import logo from '@/assets/images/logo.jpeg';
-import { registerGoat, generateGoatId } from '@/services/goats';
+import { registerLivestock, generateLivestockId } from '@/services/livestock';
 import { registerDevice, updateDevice, getDevice } from '@/services/devices';
 import { useAuth } from '@/hooks/useAuth';
 import { useDevices } from '@/hooks/useDevices';
 import { useFarmProfile } from '@/hooks/useFarmProfile';
-import { GoatPayload } from '@/types/goat';
+import { LivestockPayload } from '@/types/livestock';
 import { useToast } from '@/context/ToastContext';
 
 const inputClass =
@@ -43,7 +43,7 @@ export default function DeviceRegistration() {
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm<GoatPayload>({
+  } = useForm<LivestockPayload>({
     defaultValues: {
       gender: 'Male',
       healthStatus: 'Healthy',
@@ -53,7 +53,7 @@ export default function DeviceRegistration() {
 
   useEffect(() => {
     if (user) {
-      generateGoatId(user.uid).then((id) => setValue('goatId', id));
+      generateLivestockId(user.uid).then((id) => setValue('livestockId', id));
     }
   }, [user, setValue]);
 
@@ -169,7 +169,7 @@ export default function DeviceRegistration() {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const onSubmit = async (data: GoatPayload) => {
+  const onSubmit = async (data: LivestockPayload) => {
     if (!user) {
       navigate('/login');
       return;
@@ -204,7 +204,7 @@ export default function DeviceRegistration() {
       }
     }
 
-    const payload: GoatPayload = {
+    const payload: LivestockPayload = {
       ...data,
       age: Number(data.age),
       weight: Number(data.weight),
@@ -212,7 +212,7 @@ export default function DeviceRegistration() {
       farmName: profile?.farmName || (user.displayName ? `${user.displayName}'s Farm` : 'Main Farm'),
       owner: user.displayName || user.email || 'Farm Owner',
     };
-    if (!payload.collarId) payload.collarId = `CL-${String(data.goatId).replace(/^GT-/i, '')}`;
+    if (!payload.collarId) payload.collarId = `CL-${String(data.livestockId).replace(/^GT-/i, '')}`;
     if (!payload.dateOfBirth && payload.age > 0) {
       const d = new Date();
       d.setMonth(d.getMonth() - Number(payload.age));
@@ -232,22 +232,22 @@ export default function DeviceRegistration() {
     else delete payload.deviceId;
 
     try {
-      const goatRef = await registerGoat(user.uid, payload);
+      const livestockRef = await registerLivestock(user.uid, payload);
 
       if (linkedDeviceId && linkedDeviceDocId) {
         await updateDevice(linkedDeviceDocId, {
-          goatId: data.goatId,
-          goatDocId: goatRef.id,
+          livestockId: data.livestockId,
+          livestockDocId: livestockRef.id,
           collarId: payload.collarId,
           farmName: payload.farmName,
           shedName: payload.shedName,
         });
       }
 
-      showToast('success', `${data.goatId} registered with collar ${linkedDeviceId ?? 'no collar'}.`);
+      showToast('success', `${data.livestockId} registered with collar ${linkedDeviceId ?? 'no collar'}.`);
       navigate('/dashboard');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not save goat record.';
+      const message = err instanceof Error ? err.message : 'Could not save livestock record.';
       setError(message);
       showToast('error', message);
     } finally {
@@ -265,7 +265,7 @@ export default function DeviceRegistration() {
       >
         <div className="flex flex-col items-center">
           <img src={logo} alt="GrazeLink" className="h-14 w-14 rounded-2xl shadow-sm" />
-          <h1 className="mt-4 text-2xl font-extrabold text-ink dark:text-white">Add your first goat</h1>
+          <h1 className="mt-4 text-2xl font-extrabold text-ink dark:text-white">Add your first livestock</h1>
           <p className="mt-1 text-center text-sm text-muted dark:text-dark-muted">
             Fill in the essentials and pair it with a smart collar. Telemetry (incl. GPS) comes from the
             collar itself.
@@ -274,9 +274,9 @@ export default function DeviceRegistration() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label className={labelClass}>Goat ID</label>
-            <input className={inputClass} {...register('goatId', { required: true })} placeholder="GT-0001" />
-            {errors.goatId && <p className="mt-1 text-xs text-rose-500">Required</p>}
+            <label className={labelClass}>Livestock ID</label>
+            <input className={inputClass} {...register('livestockId', { required: true })} placeholder="GT-0001" />
+            {errors.livestockId && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
 
           <div>
@@ -366,7 +366,7 @@ export default function DeviceRegistration() {
                 </option>
               )}
               {devices
-                .filter((d) => !d.goatId)
+                .filter((d) => !d.livestockId)
                 .map((d) => (
                   <option key={d.id} value={d.id} disabled={d.registrationStatus === 'pending'}>
                     {d.deviceId} · Collar {d.collarId} ({d.status})
@@ -388,7 +388,7 @@ export default function DeviceRegistration() {
                 />
                 <p className="mt-2 text-xs text-muted dark:text-dark-muted">
                   The collar is registered, then waits to report its <b>first GPS fix</b>. Only then can it
-                  be linked to this goat — coordinates always come from the collar.
+                  be linked to this livestock — coordinates always come from the collar.
                 </p>
                 <button
                   type="button"
@@ -444,7 +444,7 @@ export default function DeviceRegistration() {
                       </button>
                     </div>
                     <p className="mt-2 rounded-xl bg-amber-500/10 p-2 text-[11px] text-amber-700 dark:text-amber-400">
-                      Saving the goat is blocked until the GPS fix is confirmed.
+                      Saving the livestock is blocked until the GPS fix is confirmed.
                     </p>
                     <button
                       type="button"
@@ -472,7 +472,7 @@ export default function DeviceRegistration() {
                       </p>
                     )}
                     <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-                      This collar is now linkable. Save the goat to attach it.
+                      This collar is now linkable. Save the livestock to attach it.
                     </p>
                   </div>
                 )}
@@ -492,7 +492,7 @@ export default function DeviceRegistration() {
             disabled={submitting}
             className="sm:col-span-3 mt-2 w-full rounded-full bg-primary px-6 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] hover:bg-primary-dark disabled:opacity-60"
           >
-            {submitting ? 'Adding...' : 'Add goat &amp; go to dashboard'}
+            {submitting ? 'Adding...' : 'Add livestock &amp; go to dashboard'}
           </button>
         </form>
       </motion.div>

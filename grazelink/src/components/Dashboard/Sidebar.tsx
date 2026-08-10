@@ -34,7 +34,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const LINKS = [
     { to: '/', label: 'Home', icon: FiHome, end: true },
     { to: '/dashboard', label: 'Dashboard', icon: FiGrid, end: true },
-    { to: '/dashboard/goats', label: 'Goat Management', icon: FiActivity },
+    { to: '/dashboard/livestock', label: 'Livestock Management', icon: FiActivity },
     { to: '/dashboard/gps', label: 'GPS Tracking', icon: FiMapPin },
     { to: '/dashboard/devices', label: 'Registered Devices', icon: FiCpu },
     { to: '/dashboard/alerts', label: 'Alert Center', icon: FiBell, badge: unreadCount },

@@ -16,7 +16,7 @@ export interface Alert {
   severity: AlertSeverity;
   message: string;
 
-  goatId?: string;
+  livestockId?: string;
   deviceId?: string;
   farmUid: string;
 

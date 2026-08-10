@@ -45,7 +45,7 @@ export async function createAlert(payload: {
   type: AlertType;
   severity: AlertSeverity;
   message: string;
-  goatId?: string;
+  livestockId?: string;
   deviceId?: string;
   farmUid: string;
 }) {

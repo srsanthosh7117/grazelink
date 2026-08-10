@@ -17,8 +17,8 @@ export async function evaluateTelemetryAlerts(
     await alertsRef.add({
       type: 'lowBattery',
       severity: 'warning',
-      message: `Collar ${collarId} on goat ${payload.goatId} is at low battery (${payload.battery}%).`,
-      goatId: payload.goatId,
+      message: `Collar ${collarId} on livestock ${payload.livestockId} is at low battery (${payload.battery}%).`,
+      livestockId: payload.livestockId,
       deviceId: payload.deviceId,
       farmUid,
       read: false,
@@ -32,8 +32,8 @@ export async function evaluateTelemetryAlerts(
     await alertsRef.add({
       type: 'highTemperature',
       severity: 'critical',
-      message: `High body temperature (${payload.temperature}°C) detected on goat ${payload.goatId}.`,
-      goatId: payload.goatId,
+      message: `High body temperature (${payload.temperature}°C) detected on livestock ${payload.livestockId}.`,
+      livestockId: payload.livestockId,
       deviceId: payload.deviceId,
       farmUid,
       read: false,
@@ -56,14 +56,14 @@ export function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: n
 }
 
 /**
- * Dismisses all open alerts of a given type for one goat. Queries by a single
- * `goatId` field (auto-indexed) and filters the rest in code to avoid needing
+ * Dismisses all open alerts of a given type for one livestock. Queries by a single
+ * `livestockId` field (auto-indexed) and filters the rest in code to avoid needing
  * composite indexes in Firestore.
  */
-export async function clearOpenAlerts(farmUid: string, goatId: string, type: AlertType) {
-  if (!goatId) return;
+export async function clearOpenAlerts(farmUid: string, livestockId: string, type: AlertType) {
+  if (!livestockId) return;
 
-  const snap = await adminDb.collection('alerts').where('goatId', '==', goatId).limit(200).get();
+  const snap = await adminDb.collection('alerts').where('livestockId', '==', livestockId).limit(200).get();
   const batch = adminDb.batch();
   let ops = 0;
 
@@ -84,7 +84,7 @@ export async function clearOpenAlerts(farmUid: string, goatId: string, type: Ale
 
 export interface GeofenceInput {
   farmUid: string;
-  goatId: string;
+  livestockId: string;
   deviceId: string;
   latitude: number;
   longitude: number;
@@ -93,12 +93,12 @@ export interface GeofenceInput {
 /**
  * Server-side geofence enforcement, evaluated on every telemetry upload.
  * When the collar is outside the farm's safe zone it raises a `geofenceBreach`
- * alert (deduped — one open alert per goat); once it returns inside, the open
+ * alert (deduped — one open alert per livestock); once it returns inside, the open
  * breach alert is resolved automatically.
  */
 export async function evaluateGeofenceBreach(input: GeofenceInput) {
-  const { farmUid, goatId, deviceId, latitude, longitude } = input;
-  if (!farmUid || !goatId) return;
+  const { farmUid, livestockId, deviceId, latitude, longitude } = input;
+  if (!farmUid || !livestockId) return;
 
   const settings = await getFarmGeofenceSettings(farmUid);
   if (!settings.enabled || settings.centerLat == null || settings.centerLng == null) return;
@@ -107,11 +107,11 @@ export async function evaluateGeofenceBreach(input: GeofenceInput) {
   const alertsRef = adminDb.collection('alerts');
 
   if (distance <= settings.radiusM) {
-    await clearOpenAlerts(farmUid, goatId, 'geofenceBreach');
+    await clearOpenAlerts(farmUid, livestockId, 'geofenceBreach');
     return;
   }
 
-  const existing = await alertsRef.where('goatId', '==', goatId).limit(20).get();
+  const existing = await alertsRef.where('livestockId', '==', livestockId).limit(20).get();
   const alreadyOpen = existing.docs.some(
     (doc) =>
       doc.data().farmUid === farmUid &&
@@ -123,8 +123,8 @@ export async function evaluateGeofenceBreach(input: GeofenceInput) {
   await alertsRef.add({
     type: 'geofenceBreach',
     severity: 'critical',
-    message: `${goatId} left the ${Math.round(settings.radiusM)} m safe zone (${Math.round(distance)} m from the farm).`,
-    goatId,
+    message: `${livestockId} left the ${Math.round(settings.radiusM)} m safe zone (${Math.round(distance)} m from the farm).`,
+    livestockId,
     deviceId: deviceId || null,
     farmUid,
     read: false,

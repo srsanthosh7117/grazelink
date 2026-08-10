@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Goat } from '@/types/goat';
+import { Livestock } from '@/types/livestock';
 
 const STORAGE_KEY = 'grazelink_geofence_radius';
 const DEFAULT_RADIUS = 500;
@@ -51,9 +51,9 @@ export interface GeoPoint {
   lng: number;
 }
 
-/** Farm centre = centroid of all goats with a live GPS fix. Falls back to null when none are located. */
-export function farmCenterOf(goats: Goat[]): GeoPoint | null {
-  const located = goats.filter((g) => g.lat != null && g.lng != null) as (Goat & {
+/** Farm centre = centroid of all livestock with a live GPS fix. Falls back to null when none are located. */
+export function farmCenterOf(livestock: Livestock[]): GeoPoint | null {
+  const located = livestock.filter((g) => g.lat != null && g.lng != null) as (Livestock & {
     lat: number;
     lng: number;
   })[];
@@ -68,11 +68,11 @@ export interface BreachStatus {
   distanceM: number;
 }
 
-export function geofenceStatus(goat: Goat, center: GeoPoint, radiusM: number): BreachStatus {
-  if (goat.lat == null || goat.lng == null) {
+export function geofenceStatus(livestock: Livestock, center: GeoPoint, radiusM: number): BreachStatus {
+  if (livestock.lat == null || livestock.lng == null) {
     return { breached: false, distanceM: 0 };
   }
-  const d = distanceMeters(goat.lat, goat.lng, center.lat, center.lng);
+  const d = distanceMeters(livestock.lat, livestock.lng, center.lat, center.lng);
   return { breached: d > radiusM, distanceM: Math.round(d) };
 }
 

@@ -11,7 +11,7 @@ export interface GpsHistoryEntry {
 
   timestamp: string;
   deviceId: string;
-  goatId: string;
+  livestockId: string;
   farmUid: string;
 
   createdAt?: unknown;

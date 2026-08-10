@@ -13,7 +13,7 @@ import { getBatteryThreshold } from '@/utils/alertThresholds';
 
 const TRUST_POINTS = ['Encrypted & secure', 'Works offline', 'Set up in minutes'];
 
-const LIVE_GOATS = [
+const LIVE_LIVESTOCK = [
   { id: 'GT-0001', name: 'Bella', battery: 97, status: 'Online', tone: 'text-emerald-500' },
   { id: 'GT-0002', name: 'Leo', battery: 84, status: 'Online', tone: 'text-emerald-500' },
   { id: 'GT-0003', name: 'Maggie', battery: 12, status: 'Low battery', tone: 'text-amber-500' },
@@ -48,7 +48,7 @@ export default function Hero() {
           </span>
 
           <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-ink dark:text-white md:text-5xl xl:text-6xl">
-            Keep every goat in sight,
+            Keep every livestock in sight,
             <br />
             from{' '}
             <span className="relative inline-block text-primary">
@@ -151,9 +151,9 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* Goat rows */}
+            {/* Livestock rows */}
             <div className="mt-4 space-y-2.5">
-              {LIVE_GOATS.map((g) => (
+              {LIVE_LIVESTOCK.map((g) => (
                 <div
                   key={g.id}
                   className="flex items-center justify-between rounded-xl bg-surface-light px-4 py-2.5 dark:bg-dark-surface"

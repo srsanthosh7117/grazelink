@@ -11,7 +11,7 @@ const REASONS = [
   {
     icon: FiTarget,
     title: 'Pinpoint accuracy',
-    description: 'Precise GPS so every goat is easy to find — grazing or wandering.',
+    description: 'Precise GPS so every livestock is easy to find — grazing or wandering.',
   },
   {
     icon: FiDatabase,

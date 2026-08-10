@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 import { FiBarChart2, FiChevronRight, FiBatteryCharging, FiThermometer } from 'react-icons/fi';
 import EmptyState from '@/components/Dashboard/EmptyState';
-import { useAllGoats } from '@/hooks/useAllGoats';
+import { useAllLivestock } from '@/hooks/useAllLivestock';
 import { getBatteryThreshold, getTempThreshold } from '@/utils/alertThresholds';
 import { useDevices } from '@/hooks/useDevices';
 import { useTheme } from '@/context/ThemeContext';
@@ -31,23 +31,23 @@ function toCountEntries(values: string[]) {
 }
 
 export default function Analytics() {
-  const { goats, loading: goatsLoading } = useAllGoats();
+  const { livestock, loading: livestockLoading } = useAllLivestock();
   const { devices, loading: devicesLoading } = useDevices();
   const { theme } = useTheme();
   const navigate = useNavigate();
 
-  const loading = goatsLoading || devicesLoading;
+  const loading = livestockLoading || devicesLoading;
 
-  const goatIdToDoc = useMemo(() => new Map(goats.map((g) => [g.goatId, g.id])), [goats]);
+  const livestockIdToDoc = useMemo(() => new Map(livestock.map((g) => [g.livestockId, g.id])), [livestock]);
 
-  const openGoatAnalytics = (goatId: string) => {
-    const docId = goatIdToDoc.get(goatId);
-    if (docId) navigate(`/dashboard/goats/${docId}`);
+  const openLivestockAnalytics = (livestockId: string) => {
+    const docId = livestockIdToDoc.get(livestockId);
+    if (docId) navigate(`/dashboard/livestock/${docId}`);
   };
 
-  const healthData = useMemo(() => toCountEntries(goats.map((g) => g.healthStatus || 'Unknown')), [goats]);
-  const vaccineData = useMemo(() => toCountEntries(goats.map((g) => g.vaccinationStatus || 'Unknown')), [goats]);
-  const shedData = useMemo(() => toCountEntries(goats.map((g) => g.shedName || 'Unassigned')), [goats]);
+  const healthData = useMemo(() => toCountEntries(livestock.map((g) => g.healthStatus || 'Unknown')), [livestock]);
+  const vaccineData = useMemo(() => toCountEntries(livestock.map((g) => g.vaccinationStatus || 'Unknown')), [livestock]);
+  const shedData = useMemo(() => toCountEntries(livestock.map((g) => g.shedName || 'Unassigned')), [livestock]);
 
   const deviceStatusData = useMemo(() => {
     const online = devices.filter((d) => d.status === 'Online').length;
@@ -61,18 +61,18 @@ export default function Analytics() {
 
   const batteryData = useMemo(
     () =>
-      goats
+      livestock
         .filter((g) => g.battery != null)
-        .map((g) => ({ name: g.goatId, battery: g.battery as number })),
-    [goats]
+        .map((g) => ({ name: g.livestockId, battery: g.battery as number })),
+    [livestock]
   );
 
   const temperatureData = useMemo(
     () =>
-      goats
+      livestock
         .filter((g) => g.temperature != null)
-        .map((g) => ({ name: g.goatId, temp: g.temperature as number })),
-    [goats]
+        .map((g) => ({ name: g.livestockId, temp: g.temperature as number })),
+    [livestock]
   );
 
   const cardClass =
@@ -97,11 +97,11 @@ export default function Analytics() {
             <div key={i} className="h-80 animate-pulse rounded-3xl bg-black/5 dark:bg-white/5" />
           ))}
         </div>
-      ) : goats.length === 0 && devices.length === 0 ? (
+      ) : livestock.length === 0 && devices.length === 0 ? (
         <EmptyState
           icon={FiBarChart2}
           title="No Data Available"
-          description="Analytics charts will automatically render once goats and smart collars report data to the system."
+          description="Analytics charts will automatically render once livestock and smart collars report data to the system."
         />
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -180,13 +180,13 @@ export default function Analytics() {
                       fill="#3B82F6"
                       radius={[8, 8, 0, 0]}
                       onClick={(data) => {
-                        if (data?.payload?.name) openGoatAnalytics(data.payload.name);
+                        if (data?.payload?.name) openLivestockAnalytics(data.payload.name);
                       }}
                     />
                   </BarChart>
                 </ResponsiveContainer>
                 <p className="mt-2 text-[11px] text-muted dark:text-dark-muted">
-                  Click a bar to open that goat's analytics.
+                  Click a bar to open that livestock's analytics.
                 </p>
               </>
             )}
@@ -203,7 +203,7 @@ export default function Analytics() {
                   <LineChart
                     data={temperatureData}
                     onClick={(state) => {
-                      if (state?.activeLabel) openGoatAnalytics(state.activeLabel);
+                      if (state?.activeLabel) openLivestockAnalytics(state.activeLabel);
                     }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -214,7 +214,7 @@ export default function Analytics() {
                   </LineChart>
                 </ResponsiveContainer>
                 <p className="mt-2 text-[11px] text-muted dark:text-dark-muted">
-                  Click a point to open that goat's analytics.
+                  Click a point to open that livestock's analytics.
                 </p>
               </>
             )}
@@ -238,26 +238,26 @@ export default function Analytics() {
             )}
           </div>
 
-          {/* Quick Drill-Down — every goat, click to open its analytics */}
+          {/* Quick Drill-Down — every livestock, click to open its analytics */}
           <div className={`${cardClass} lg:col-span-2`}>
-            <h2 className="font-bold text-ink dark:text-white mb-4">Goats — open individual analytics</h2>
-            {goats.length === 0 ? (
+            <h2 className="font-bold text-ink dark:text-white mb-4">Livestock — open individual analytics</h2>
+            {livestock.length === 0 ? (
               <p className="py-16 text-center text-xs text-muted dark:text-dark-muted">No Data Available</p>
             ) : (
               <div className="divide-y divide-black/5 dark:divide-white/5">
-                {goats.map((g) => (
+                {livestock.map((g) => (
                   <button
                     key={g.id}
-                    onClick={() => openGoatAnalytics(g.goatId)}
+                    onClick={() => openLivestockAnalytics(g.livestockId)}
                     className="group flex w-full items-center justify-between gap-3 px-2 py-3 text-left transition-colors hover:bg-surface-light dark:hover:bg-dark-surface"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 font-bold text-primary">
-                        {g.goatId.replace(/^GT-/, '')}
+                        {g.livestockId.replace(/^GT-/, '')}
                       </div>
                       <div>
                         <p className="text-sm font-bold text-ink dark:text-white">
-                          {g.goatId} {g.name ? <span className="font-medium text-muted dark:text-dark-muted">· {g.name}</span> : null}
+                          {g.livestockId} {g.name ? <span className="font-medium text-muted dark:text-dark-muted">· {g.name}</span> : null}
                         </p>
                         <p className="text-xs text-muted dark:text-dark-muted">
                           {g.breed || 'Unknown breed'} · {g.shedName || 'No shed'}

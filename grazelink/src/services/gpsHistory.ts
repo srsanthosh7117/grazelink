@@ -10,12 +10,12 @@ import { GpsHistoryEntry } from '@/types/gpsHistory';
 const gpsRef = collection(db, 'gpsHistory');
 
 /**
- * Fetches GPS history for a specific goat within an optional date range.
+ * Fetches GPS history for a specific livestock within an optional date range.
  * Uses a single-field `farmUid` filter (no composite index required) and
  * filters/sorts client-side.
  */
 export async function getGpsHistory(
-  goatId: string,
+  livestockId: string,
   farmUid: string,
   options?: { from?: Date; to?: Date; maxEntries?: number },
 ): Promise<GpsHistoryEntry[]> {
@@ -28,7 +28,7 @@ export async function getGpsHistory(
   let entries = snap.docs
     .map((d) => ({ id: d.id, ...d.data() }) as GpsHistoryEntry)
     .filter((e) => {
-      if (e.goatId !== goatId) return false;
+      if (e.livestockId !== livestockId) return false;
       const ms = new Date(e.timestamp).getTime();
       if (Number.isNaN(ms)) return true;
       if (fromMs != null && ms < fromMs) return false;

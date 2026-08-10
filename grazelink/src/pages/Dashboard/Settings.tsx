@@ -24,7 +24,7 @@ import { useToast } from '@/context/ToastContext';
 import { farmCenterOf } from '@/hooks/useGeofence';
 import { useFarmGeofence } from '@/hooks/useFarmGeofence';
 import { useFarmProfile } from '@/hooks/useFarmProfile';
-import { useAllGoats } from '@/hooks/useAllGoats';
+import { useAllLivestock } from '@/hooks/useAllLivestock';
 import { updateFarmProfile } from '@/services/auth';
 import { auth } from '@/services/firebase';
 import { deleteFarmAccount } from '@/services/deleteAccount';
@@ -58,7 +58,7 @@ export default function Settings() {
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const { profile, loading: profileLoading } = useFarmProfile();
-  const { goats, loading: goatsLoading } = useAllGoats();
+  const { livestock, loading: livestockLoading } = useAllLivestock();
 
   // Geofence — server-backed settings (cloud copy + live sync)
   const {
@@ -231,16 +231,16 @@ export default function Settings() {
   };
 
   const handleExport = () => {
-    if (goats.length === 0) {
-      showToast('error', 'No goats to export yet.');
+    if (livestock.length === 0) {
+      showToast('error', 'No livestock to export yet.');
       return;
     }
     const headers = [
-      'Goat ID', 'Name', 'Breed', 'Gender', 'Age', 'Weight (kg)', 'Health',
+      'Livestock ID', 'Name', 'Breed', 'Gender', 'Age', 'Weight (kg)', 'Health',
       'Vaccination', 'Shed', 'Device Status', 'Battery (%)', 'Temperature (°C)', 'Last Seen',
     ];
-    const rows = goats.map((g) => [
-      g.goatId, g.name, g.breed, g.gender, g.age, g.weight, g.healthStatus,
+    const rows = livestock.map((g) => [
+      g.livestockId, g.name, g.breed, g.gender, g.age, g.weight, g.healthStatus,
       g.vaccinationStatus, g.shedName, g.status ?? '', g.battery ?? '', g.temperature ?? '', g.lastSeen ?? '',
     ]);
     const csv = [headers, ...rows]
@@ -253,7 +253,7 @@ export default function Settings() {
     a.download = `grazelink-herd-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('success', `Exported ${goats.length} goats as CSV.`);
+    showToast('success', `Exported ${livestock.length} livestock as CSV.`);
   };
 
   const handleDeleteAccount = async () => {
@@ -474,7 +474,7 @@ export default function Settings() {
           <button
             type="button"
             onClick={() => {
-              const herdCenter = farmCenterOf(goats);
+              const herdCenter = farmCenterOf(livestock);
               if (herdCenter) {
                 setGeofenceDraft((d) => ({
                   ...d,
@@ -484,7 +484,7 @@ export default function Settings() {
                 setGeofenceDirty(true);
               }
             }}
-            disabled={goatsLoading || goats.length === 0}
+            disabled={livestockLoading || livestock.length === 0}
             className="mt-3 text-xs font-semibold text-primary transition-colors hover:text-primary-dark disabled:opacity-50 dark:text-primary-light"
           >
             Use current herd centre
@@ -715,13 +715,13 @@ export default function Settings() {
               <div>
                 <p className="font-bold text-ink dark:text-white">Export Herd Data</p>
                 <p className="text-xs text-muted dark:text-dark-muted">
-                  {goatsLoading ? 'Loading herd…' : `Download ${goats.length} goats as a CSV file`}
+                  {livestockLoading ? 'Loading herd…' : `Download ${livestock.length} livestock as a CSV file`}
                 </p>
               </div>
             </div>
             <button
               onClick={handleExport}
-              disabled={goatsLoading || goats.length === 0}
+              disabled={livestockLoading || livestock.length === 0}
               className="inline-flex items-center gap-2 rounded-full border border-black/10 px-6 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-primary hover:text-primary dark:border-white/10 dark:text-white dark:hover:border-primary dark:hover:text-primary-light disabled:opacity-60"
             >
               <FiDownload className="text-base" />
@@ -765,7 +765,7 @@ export default function Settings() {
 
             <div className="mt-4 space-y-4 text-sm">
               <p className="text-xs leading-relaxed text-muted dark:text-dark-muted">
-                This will permanently delete your farm profile, all registered goats, collar devices,
+                This will permanently delete your farm profile, all registered livestock, collar devices,
                 GPS history, and alerts. This action cannot be undone.
               </p>
 

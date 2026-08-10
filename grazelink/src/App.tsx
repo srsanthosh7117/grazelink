@@ -10,9 +10,9 @@ const Login = lazy(() => import('@/pages/Login/Login'));
 const Register = lazy(() => import('@/pages/Register/Register'));
 const DeviceRegistration = lazy(() => import('@/pages/DeviceRegistration/DeviceRegistration'));
 const Overview = lazy(() => import('@/pages/Dashboard/Overview'));
-const Goats = lazy(() => import('@/pages/Dashboard/Goats'));
-const AddGoat = lazy(() => import('@/pages/Dashboard/AddGoat'));
-const GoatDetail = lazy(() => import('@/pages/Dashboard/GoatDetail'));
+const Livestock = lazy(() => import('@/pages/Dashboard/Livestock'));
+const AddLivestock = lazy(() => import('@/pages/Dashboard/AddLivestock'));
+const LivestockDetail = lazy(() => import('@/pages/Dashboard/LivestockDetail'));
 const GPSTracking = lazy(() => import('@/pages/Dashboard/GPSTracking'));
 const Reports = lazy(() => import('@/pages/Dashboard/Reports'));
 const Analytics = lazy(() => import('@/pages/Dashboard/Analytics'));
@@ -59,9 +59,9 @@ export default function App() {
           }
         >
           <Route index element={<Overview />} />
-          <Route path="goats" element={<Goats />} />
-          <Route path="goats/add" element={<AddGoat />} />
-          <Route path="goats/:goatId" element={<GoatDetail />} />
+          <Route path="livestock" element={<Livestock />} />
+          <Route path="livestock/add" element={<AddLivestock />} />
+          <Route path="livestock/:livestockId" element={<LivestockDetail />} />
           <Route path="gps" element={<GPSTracking />} />
           <Route path="reports" element={<Reports />} />
           <Route path="analytics" element={<Analytics />} />

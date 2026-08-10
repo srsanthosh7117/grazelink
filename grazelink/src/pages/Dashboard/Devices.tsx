@@ -151,7 +151,7 @@ export default function Devices() {
         <EmptyState
           icon={FiCpu}
           title="No Collars Registered"
-          description="Register hardware collars to pair with your goats and receive automatic HTTPS telemetry."
+          description="Register hardware collars to pair with your livestock and receive automatic HTTPS telemetry."
           action={{ label: '+ Register Collar Device', onClick: openAdd }}
         />
       ) : (

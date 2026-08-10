@@ -15,7 +15,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarmProfile } from '@/hooks/useFarmProfile';
-import { useGoatsCounts } from '@/hooks/useGoatsCounts';
+import { useLivestockCounts } from '@/hooks/useLivestockCounts';
 import { useDevices } from '@/hooks/useDevices';
 import { logoutUser, updateFarmProfile } from '@/services/auth';
 import { useToast } from '@/context/ToastContext';
@@ -106,7 +106,7 @@ function FieldCard({
 export default function AccountCenter() {
   const { user } = useAuth();
   const { profile, loading: profileLoading } = useFarmProfile();
-  const { total: totalGoats } = useGoatsCounts();
+  const { total: totalLivestock } = useLivestockCounts();
   const { devices } = useDevices();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -309,10 +309,10 @@ export default function AccountCenter() {
 
               <div className="rounded-2xl bg-surface-light p-4 dark:bg-dark-surface">
                 <dt className="text-muted dark:text-dark-muted flex items-center gap-1.5 font-semibold">
-                  <FiActivity className="text-rose-500" /> Managed Goats
+                  <FiActivity className="text-rose-500" /> Managed Livestock
                 </dt>
                 <dd className="mt-1 text-sm font-extrabold text-ink dark:text-white">
-                  {totalGoats ?? '…'} Goats Enrolled
+                  {totalLivestock ?? '…'} Livestock Enrolled
                 </dd>
               </div>
 

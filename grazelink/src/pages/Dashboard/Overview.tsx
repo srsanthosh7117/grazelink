@@ -21,7 +21,7 @@ import {
 import StatCard from '@/components/Cards/StatCard';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarmProfile } from '@/hooks/useFarmProfile';
-import { useAllGoats } from '@/hooks/useAllGoats';
+import { useAllLivestock } from '@/hooks/useAllLivestock';
 import { useDevices } from '@/hooks/useDevices';
 import { useAlerts } from '@/hooks/useAlerts';
 import { ALERT_COLORS } from '@/types/alert';
@@ -58,13 +58,13 @@ function MetricTile({ icon: Icon, label, value, tone = 'default' }: MetricTilePr
 export default function Overview() {
   const { user } = useAuth();
   const { profile, loading: profileLoading, error: profileError } = useFarmProfile();
-  const { goats, loading: goatsLoading, error: goatsError } = useAllGoats();
+  const { livestock, loading: livestockLoading, error: livestockError } = useAllLivestock();
   const { devices, onlineDevices, offlineDevices, lowBatteryDevices, avgBattery, avgTemperature } =
     useDevices();
   const { alerts, unreadCount } = useAlerts();
 
-  const isLoading = profileLoading || goatsLoading;
-  const error = profileError || goatsError;
+  const isLoading = profileLoading || livestockLoading;
+  const error = profileError || livestockError;
 
   if (isLoading) {
     return (
@@ -91,13 +91,13 @@ export default function Overview() {
   const farms = profile ? 1 : 0;
   const sheds = profile?.numberOfSheds ?? 0;
 
-  const totalGoats = goats.length;
-  const healthyCount = goats.filter((g) => g.healthStatus === 'Healthy').length;
-  const sickCount = goats.length - healthyCount;
-  const gpsConnectedCount = goats.filter((g) => g.lat != null && g.lng != null).length;
-  const pendingSyncCount = totalGoats - gpsConnectedCount;
+  const totalLivestock = livestock.length;
+  const healthyCount = livestock.filter((g) => g.healthStatus === 'Healthy').length;
+  const sickCount = livestock.length - healthyCount;
+  const gpsConnectedCount = livestock.filter((g) => g.lat != null && g.lng != null).length;
+  const pendingSyncCount = totalLivestock - gpsConnectedCount;
   const totalDevices = devices.length;
-  const healthyPct = totalGoats ? Math.round((healthyCount / totalGoats) * 100) : 0;
+  const healthyPct = totalLivestock ? Math.round((healthyCount / totalLivestock) * 100) : 0;
 
   const recentAlerts = alerts;
   const activeAlerts = recentAlerts.filter((a) => !a.dismissed);
@@ -164,7 +164,7 @@ export default function Overview() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-black/5 bg-white px-3 py-1 text-xs font-semibold text-muted dark:border-white/10 dark:bg-white/5 dark:text-dark-muted">
                 <FiUser className="h-3.5 w-3.5 text-primary" />
-                {totalGoats} goats
+                {totalLivestock} livestock
               </span>
             </div>
           </div>
@@ -178,11 +178,11 @@ export default function Overview() {
               GPS Map
             </Link>
             <Link
-              to="/dashboard/goats/add"
+              to="/dashboard/livestock/add"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition-all hover:bg-primary/90 hover:shadow-card"
             >
               <FiPlus className="h-4 w-4" />
-              Add Goat
+              Add Livestock
             </Link>
           </div>
         </div>
@@ -215,14 +215,14 @@ export default function Overview() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={FiActivity}
-          label="Total Goats"
-          value={totalGoats}
+          label="Total Livestock"
+          value={totalLivestock}
           subtext={`${totalDevices} collars linked`}
           accent="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light"
         />
         <StatCard
           icon={FiHeart}
-          label="Healthy Goats"
+          label="Healthy Livestock"
           value={healthyCount}
           subtext={`${healthyPct}% of herd`}
           trend={{ value: `${healthyPct}% healthy`, isPositive: healthyPct >= 90 }}

@@ -4,8 +4,8 @@ export interface Device {
 
   deviceId: string;
   collarId?: string;
-  goatId?: string;
-  goatDocId?: string;
+  livestockId?: string;
+  livestockDocId?: string;
   farmUid: string;
   farmName?: string;
   shedName?: string;
@@ -18,7 +18,7 @@ export interface Device {
   /** GPS registration handshake state. A freshly registered collar starts
    *  'pending' and is only 'gps_confirmed' once the collar POSTed its
    *  first live fix to /api/device/location. Collars cannot be linked to
-   *  a goat until confirmed. */
+   *  a livestock until confirmed. */
   registrationStatus?: 'pending' | 'gps_confirmed';
   initialLatitude?: number | null;
   initialLongitude?: number | null;

@@ -1,9 +1,9 @@
-export interface Goat {
+export interface Livestock {
   /** Firestore document id */
   id: string;
 
   // Identity
-  goatId: string;
+  livestockId: string;
   collarId: string;
   name: string;
   breed: string;
@@ -41,4 +41,4 @@ export interface Goat {
   createdAt?: unknown;
 }
 
-export type GoatPayload = Omit<Goat, 'id' | 'createdAt'>;
+export type LivestockPayload = Omit<Livestock, 'id' | 'createdAt'>;

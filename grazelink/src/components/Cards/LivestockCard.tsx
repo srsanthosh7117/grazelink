@@ -1,24 +1,24 @@
 import { FiEye, FiEdit2, FiTrash2, FiTrendingUp, FiBatteryCharging, FiThermometer, FiWifi } from 'react-icons/fi';
-import { Goat } from '@/types/goat';
+import { Livestock } from '@/types/livestock';
 import { getBatteryThreshold, getTempThreshold } from '@/utils/alertThresholds';
 
-interface GoatCardProps {
-  goat: Goat;
-  onView?: (goat: Goat) => void;
-  onAnalyze?: (goat: Goat) => void;
-  onEdit?: (goat: Goat) => void;
-  onDelete?: (goat: Goat) => void;
+interface LivestockCardProps {
+  livestock: Livestock;
+  onView?: (livestock: Livestock) => void;
+  onAnalyze?: (livestock: Livestock) => void;
+  onEdit?: (livestock: Livestock) => void;
+  onDelete?: (livestock: Livestock) => void;
 }
 
-export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: GoatCardProps) {
-  const status = goat.status ?? 'Offline';
-  const hasTelemetry = goat.status !== undefined;
+export default function LivestockCard({ livestock, onView, onAnalyze, onEdit, onDelete }: LivestockCardProps) {
+  const status = livestock.status ?? 'Offline';
+  const hasTelemetry = livestock.status !== undefined;
 
   const batteryColor =
-    goat.battery != null
-      ? goat.battery <= getBatteryThreshold()
+    livestock.battery != null
+      ? livestock.battery <= getBatteryThreshold()
         ? 'text-rose-500'
-        : goat.battery > 50
+        : livestock.battery > 50
           ? 'text-emerald-500'
           : 'text-amber-500'
       : 'text-muted';
@@ -27,11 +27,11 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
     <div
       role="button"
       tabIndex={0}
-      onClick={() => onAnalyze?.(goat)}
+      onClick={() => onAnalyze?.(livestock)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onAnalyze?.(goat);
+          onAnalyze?.(livestock);
         }
       }}
       className="group cursor-pointer rounded-2xl border border-black/5 bg-white p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-card dark:border-white/5 dark:bg-dark-card dark:shadow-dark-card dark:hover:border-primary/40"
@@ -39,16 +39,16 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-ink dark:text-white">{goat.goatId}</h3>
-            {goat.name && <span className="text-xs text-muted dark:text-dark-muted">({goat.name})</span>}
+            <h3 className="font-bold text-ink dark:text-white">{livestock.livestockId}</h3>
+            {livestock.name && <span className="text-xs text-muted dark:text-dark-muted">({livestock.name})</span>}
           </div>
           <p className="text-xs font-medium text-muted dark:text-dark-muted">
-            Collar: <span className="text-ink dark:text-gray-300">{goat.collarId}</span>
+            Collar: <span className="text-ink dark:text-gray-300">{livestock.collarId}</span>
           </p>
           <p className="text-xs font-medium text-muted dark:text-dark-muted">
             Device:{' '}
-            <span className={goat.deviceId ? 'text-ink dark:text-gray-300' : 'text-rose-500'}>
-              {goat.deviceId || 'Not linked'}
+            <span className={livestock.deviceId ? 'text-ink dark:text-gray-300' : 'text-rose-500'}>
+              {livestock.deviceId || 'Not linked'}
             </span>
           </p>
         </div>
@@ -74,12 +74,12 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
         <div className="rounded-xl bg-surface-light p-2.5 dark:bg-dark-surface/60">
           <span className="text-muted dark:text-dark-muted">Breed &amp; Gender</span>
           <p className="mt-0.5 font-semibold text-ink dark:text-gray-200">
-            {goat.breed || '—'} · {goat.gender || '—'}
+            {livestock.breed || '—'} · {livestock.gender || '—'}
           </p>
         </div>
         <div className="rounded-xl bg-surface-light p-2.5 dark:bg-dark-surface/60">
           <span className="text-muted dark:text-dark-muted">Shed</span>
-          <p className="mt-0.5 font-semibold text-ink dark:text-gray-200">{goat.shedName || '—'}</p>
+          <p className="mt-0.5 font-semibold text-ink dark:text-gray-200">{livestock.shedName || '—'}</p>
         </div>
       </div>
 
@@ -87,25 +87,25 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
         <div className="flex items-center gap-1">
           <FiBatteryCharging className={batteryColor} />
           <span className="font-medium text-ink dark:text-gray-200">
-            {goat.battery != null ? `${goat.battery}%` : '—'}
+            {livestock.battery != null ? `${livestock.battery}%` : '—'}
           </span>
         </div>
 
-        {goat.temperature != null && (
+        {livestock.temperature != null && (
           <div className="flex items-center gap-1">
             <FiThermometer
               className={
-                goat.temperature > getTempThreshold() ? 'text-rose-500' : 'text-amber-500'
+                livestock.temperature > getTempThreshold() ? 'text-rose-500' : 'text-amber-500'
               }
             />
-            <span className="font-medium text-ink dark:text-gray-200">{goat.temperature}°C</span>
+            <span className="font-medium text-ink dark:text-gray-200">{livestock.temperature}°C</span>
           </div>
         )}
 
-        {goat.signalStrength != null && (
+        {livestock.signalStrength != null && (
           <div className="flex items-center gap-1">
             <FiWifi className="text-blue-500" />
-            <span className="font-medium text-ink dark:text-gray-200">{goat.signalStrength} dBm</span>
+            <span className="font-medium text-ink dark:text-gray-200">{livestock.signalStrength} dBm</span>
           </div>
         )}
       </div>
@@ -114,7 +114,7 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onView?.(goat);
+            onView?.(livestock);
           }}
           className="flex items-center justify-center gap-1.5 rounded-xl border border-black/10 py-2 text-xs font-semibold text-ink transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary dark:border-white/10 dark:text-gray-200 dark:hover:border-primary dark:hover:text-primary"
         >
@@ -123,7 +123,7 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onAnalyze?.(goat);
+            onAnalyze?.(livestock);
           }}
           className="flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white dark:bg-primary/20 dark:text-primary-light dark:hover:bg-primary"
         >
@@ -132,7 +132,7 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onEdit?.(goat);
+            onEdit?.(livestock);
           }}
           className="flex items-center justify-center gap-1.5 rounded-xl border border-black/10 py-2 text-xs font-semibold text-ink transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary dark:border-white/10 dark:text-gray-200 dark:hover:border-primary dark:hover:text-primary"
         >
@@ -141,7 +141,7 @@ export default function GoatCard({ goat, onView, onAnalyze, onEdit, onDelete }: 
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onDelete?.(goat);
+            onDelete?.(livestock);
           }}
           className="flex items-center justify-center gap-1.5 rounded-xl border border-black/10 py-2 text-xs font-semibold text-rose-500 transition-colors hover:border-rose-500 hover:bg-rose-500/5 dark:border-white/10 dark:hover:border-rose-500"
         >

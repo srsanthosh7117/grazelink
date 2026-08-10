@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 // Normalise optional fields the collar firmware does not always send
-// (TrackerRecord only carries deviceId/apiKey/goatId/lat/lng/accuracy/
+// (TrackerRecord only carries deviceId/apiKey/livestockId/lat/lng/accuracy/
 // battery/movement/timestamp/gpsStatus).
 function normalizePayload(payload: TelemetryPayload) {
   const collarId =
@@ -31,7 +31,7 @@ function normalizePayload(payload: TelemetryPayload) {
  */
 router.post('/location', validateDevice, async (req: Request, res: Response) => {
   try {
-    const { deviceId, goatId, latitude, longitude, gpsStatus } = req.body as Partial<TelemetryPayload>;
+    const { deviceId, livestockId, latitude, longitude, gpsStatus } = req.body as Partial<TelemetryPayload>;
 
     if (!deviceId || typeof deviceId !== 'string') {
       return res.status(400).json({ success: false, error: 'Invalid or missing deviceId' });
@@ -53,14 +53,14 @@ router.post('/location', validateDevice, async (req: Request, res: Response) => 
         initialLatitude: latitude,
         initialLongitude: longitude,
         status: 'Online',
-        goatId: typeof goatId === 'string' ? goatId : deviceSnap.docs[0].data().goatId || null,
+        livestockId: typeof livestockId === 'string' ? livestockId : deviceSnap.docs[0].data().livestockId || null,
         updatedAt: FieldValue.serverTimestamp(),
       });
     } else {
       await devicesRef.add({
         deviceId,
         collarId: deviceId,
-        goatId: typeof goatId === 'string' ? goatId : null,
+        livestockId: typeof livestockId === 'string' ? livestockId : null,
         status: 'Online',
         registrationStatus: 'gps_confirmed',
         initialLatitude: latitude,
@@ -85,23 +85,23 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     const payload = req.body as TelemetryPayload;
     const { collarId, temperature, signalStrength } = normalizePayload(payload);
 
-    // 1. Locate goat document by goatId or collarId
-    const goatsRef = adminDb.collection('goats');
-    let goatSnap = await goatsRef.where('goatId', '==', payload.goatId).limit(1).get();
+    // 1. Locate livestock document by livestockId or collarId
+    const livestockRef = adminDb.collection('livestock');
+    let livestockSnap = await livestockRef.where('livestockId', '==', payload.livestockId).limit(1).get();
 
-    if (goatSnap.empty) {
-      goatSnap = await goatsRef.where('collarId', '==', payload.collarId).limit(1).get();
+    if (livestockSnap.empty) {
+      livestockSnap = await livestockRef.where('collarId', '==', payload.collarId).limit(1).get();
     }
 
     let farmUid = req.device?.farmUid || 'system';
-    let goatDocId: string | null = null;
+    let livestockDocId: string | null = null;
 
-    if (!goatSnap.empty) {
-      const doc = goatSnap.docs[0];
-      goatDocId = doc.id;
+    if (!livestockSnap.empty) {
+      const doc = livestockSnap.docs[0];
+      livestockDocId = doc.id;
       farmUid = doc.data().farmUid || farmUid;
 
-      // Update Goat Document with real-time telemetry
+      // Update Livestock Document with real-time telemetry
       await doc.ref.update({
         lat: payload.latitude,
         lng: payload.longitude,
@@ -126,7 +126,7 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
       signalStrength,
       timestamp: payload.timestamp || new Date().toISOString(),
       deviceId: payload.deviceId,
-      goatId: payload.goatId,
+      livestockId: payload.livestockId,
       farmUid,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -145,12 +145,12 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         lastSync: new Date().toLocaleTimeString(),
         status: 'Online',
         collarId,
-        goatId: payload.goatId,
+        livestockId: payload.livestockId,
         updatedAt: FieldValue.serverTimestamp(),
       };
 
       // GPS registration handshake: the dashboard registers a collar as
-      // 'pending' and blocks goat-linking until this flip to 'gps_confirmed'.
+      // 'pending' and blocks livestock-linking until this flip to 'gps_confirmed'.
       // The first live fix completes the handshake and is stored as the
       // collar's initial location.
       if (deviceData.registrationStatus !== 'gps_confirmed') {
@@ -164,7 +164,7 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
       await devicesRef.add({
         deviceId: payload.deviceId,
         collarId,
-        goatId: payload.goatId,
+        livestockId: payload.livestockId,
         farmUid,
         firmwareVersion: 'v2.1.0',
         battery: payload.battery,
@@ -183,10 +183,10 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     await evaluateTelemetryAlerts(payload, farmUid, { temperature, collarId });
 
     // 5. Server-side geofence enforcement (raises/resolves geofenceBreach alerts)
-    if (payload.goatId && typeof payload.latitude === 'number' && typeof payload.longitude === 'number') {
+    if (payload.livestockId && typeof payload.latitude === 'number' && typeof payload.longitude === 'number') {
       await evaluateGeofenceBreach({
         farmUid,
-        goatId: payload.goatId,
+        livestockId: payload.livestockId,
         deviceId: payload.deviceId,
         latitude: payload.latitude,
         longitude: payload.longitude,
@@ -194,12 +194,12 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     }
 
     // 6. The collar just reported, so any open offline alert is now resolved
-    await clearOpenAlerts(farmUid, payload.goatId, 'deviceOffline');
+    await clearOpenAlerts(farmUid, payload.livestockId, 'deviceOffline');
 
     return res.status(200).json({
       success: true,
       message: 'Telemetry uploaded and processed successfully',
-      goatDocId,
+      livestockDocId,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

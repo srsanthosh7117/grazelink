@@ -42,7 +42,7 @@ immediately and you'll need to reflash that one collar with the new key.
 {
   "deviceId": "ESP32-001",
   "collarId": "CL-1042",
-  "goatId": "GT-0001",
+  "livestockId": "GT-0001",
   "latitude": 13.0827,
   "longitude": 80.2707,
   "battery": 88,

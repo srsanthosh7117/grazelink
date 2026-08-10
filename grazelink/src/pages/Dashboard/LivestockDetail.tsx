@@ -17,12 +17,12 @@ import {
   FiUser,
 } from 'react-icons/fi';
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { useGoatById } from '@/hooks/useGoatById';
+import { useLivestockById } from '@/hooks/useLivestockById';
 import { useDevices } from '@/hooks/useDevices';
 import { useAuth } from '@/hooks/useAuth';
-import { deleteGoat } from '@/services/goats';
-import AddGoatModal from '@/components/Dashboard/AddGoatModal';
-import GoatAnalytics from '@/components/Dashboard/GoatAnalytics';
+import { deleteLivestock } from '@/services/livestock';
+import AddLivestockModal from '@/components/Dashboard/AddLivestockModal';
+import LivestockAnalytics from '@/components/Dashboard/LivestockAnalytics';
 import { useToast } from '@/context/ToastContext';
 
 function formatRegistrationTime(value: unknown): string {
@@ -40,12 +40,12 @@ function formatRegistrationTime(value: unknown): string {
   return date.toLocaleString();
 }
 
-export default function GoatDetail() {
-  const { goatId } = useParams<{ goatId: string }>();
+export default function LivestockDetail() {
+  const { livestockId } = useParams<{ livestockId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const { goat, loading } = useGoatById(goatId);
+  const { livestock, loading } = useLivestockById(livestockId);
   const { devices } = useDevices();
   const { showToast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
@@ -53,51 +53,51 @@ export default function GoatDetail() {
     searchParams.get('view') === 'profile' ? 'profile' : 'analytics',
   );
 
-  const device = goat ? devices.find((d) => d.deviceId === goat.deviceId) : undefined;
+  const device = livestock ? devices.find((d) => d.deviceId === livestock.deviceId) : undefined;
 
   if (loading) {
     return <div className="h-96 animate-pulse rounded-3xl bg-black/5 dark:bg-white/5" />;
   }
 
-  if (!goat) {
+  if (!livestock) {
     return (
       <div className="space-y-6">
-        <Link to="/dashboard/goats" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
-          <FiArrowLeft /> Back to Goat Management
+        <Link to="/dashboard/livestock" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+          <FiArrowLeft /> Back to Livestock Management
         </Link>
         <div className="rounded-3xl border border-black/5 bg-white p-12 text-center shadow-soft dark:border-white/5 dark:bg-dark-card">
-          <p className="text-muted dark:text-dark-muted">Goat record could not be found. It may have been removed.</p>
+          <p className="text-muted dark:text-dark-muted">Livestock record could not be found. It may have been removed.</p>
         </div>
       </div>
     );
   }
 
-  const battery = goat.battery ?? 0;
+  const battery = livestock.battery ?? 0;
   const batteryColor = battery >= 60 ? '#22C55E' : battery >= 30 ? '#F59E0B' : '#EF4444';
 
   const handleDelete = async () => {
     if (!user) return;
-    if (!confirm(`Are you sure you want to remove ${goat.goatId}?`)) return;
-    await deleteGoat(user.uid, goat.id);
-    showToast('success', `${goat.goatId} was deleted.`);
-    navigate('/dashboard/goats');
+    if (!confirm(`Are you sure you want to remove ${livestock.livestockId}?`)) return;
+    await deleteLivestock(user.uid, livestock.id);
+    showToast('success', `${livestock.livestockId} was deleted.`);
+    navigate('/dashboard/livestock');
   };
 
   const profileRows: [string, string][] = [
-    ['Goat Name', goat.name || '—'],
-    ['Breed', goat.breed || '—'],
-    ['Gender', goat.gender || '—'],
-    ['Age', `${goat.age} months`],
-    ['Weight', `${goat.weight} kg`],
-    ['Colour', goat.colour || '—'],
-    ['Date of Birth', goat.dateOfBirth || '—'],
-    ['Purchase Date', goat.purchaseDate || '—'],
-    ['Owner', goat.owner || '—'],
-    ['Farm Name', goat.farmName || '—'],
-    ['Shed Name', goat.shedName || '—'],
-    ['Device ID', goat.deviceId || 'Collar Unassigned'],
-    ['Collar ID', goat.collarId || '—'],
-    ['GPS Status', goat.gpsStatus || 'Active'],
+    ['Livestock Name', livestock.name || '—'],
+    ['Breed', livestock.breed || '—'],
+    ['Gender', livestock.gender || '—'],
+    ['Age', `${livestock.age} months`],
+    ['Weight', `${livestock.weight} kg`],
+    ['Colour', livestock.colour || '—'],
+    ['Date of Birth', livestock.dateOfBirth || '—'],
+    ['Purchase Date', livestock.purchaseDate || '—'],
+    ['Owner', livestock.owner || '—'],
+    ['Farm Name', livestock.farmName || '—'],
+    ['Shed Name', livestock.shedName || '—'],
+    ['Device ID', livestock.deviceId || 'Collar Unassigned'],
+    ['Collar ID', livestock.collarId || '—'],
+    ['GPS Status', livestock.gpsStatus || 'Active'],
   ];
 
   const cardClass =
@@ -111,28 +111,28 @@ export default function GoatDetail() {
   return (
     <div className="space-y-6">
       {/* Top Bar */}
-      <Link to="/dashboard/goats" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
-        <FiArrowLeft /> Back to Goat Management
+      <Link to="/dashboard/livestock" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+        <FiArrowLeft /> Back to Livestock Management
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-extrabold tracking-tight text-ink dark:text-white md:text-3xl">
-              {goat.goatId} {goat.name ? `— ${goat.name}` : ''}
+              {livestock.livestockId} {livestock.name ? `— ${livestock.name}` : ''}
             </h1>
             <span
               className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                goat.status === 'Online'
+                livestock.status === 'Online'
                   ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
                   : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
               }`}
             >
-              {goat.status ?? 'Offline'}
+              {livestock.status ?? 'Offline'}
             </span>
           </div>
           <p className="mt-1 text-sm text-muted dark:text-dark-muted">
-            Smart Collar {goat.collarId} · Managed in {goat.shedName}
+            Smart Collar {livestock.collarId} · Managed in {livestock.shedName}
           </p>
         </div>
 
@@ -170,7 +170,7 @@ export default function GoatDetail() {
       </div>
 
       {view === 'analytics' ? (
-        <GoatAnalytics goatId={goat.goatId} />
+        <LivestockAnalytics livestockId={livestock.livestockId} />
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6">
@@ -180,7 +180,7 @@ export default function GoatDetail() {
                 <FiBatteryCharging className="text-primary" /> Battery &amp; Signal Telemetry
               </h2>
 
-              {goat.battery != null ? (
+              {livestock.battery != null ? (
                 <ResponsiveContainer width="100%" height={200}>
                   <RadialBarChart
                     innerRadius="70%"
@@ -208,7 +208,7 @@ export default function GoatDetail() {
                     <FiThermometer className="text-amber-500" /> Temperature
                   </span>
                   <p className="mt-1 text-sm font-bold text-ink dark:text-white">
-                    {goat.temperature != null ? `${goat.temperature}°C` : 'N/A'}
+                    {livestock.temperature != null ? `${livestock.temperature}°C` : 'N/A'}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-surface-light p-3 dark:bg-dark-surface">
@@ -216,7 +216,7 @@ export default function GoatDetail() {
                     <FiWifi className="text-blue-500" /> Signal
                   </span>
                   <p className="mt-1 text-sm font-bold text-ink dark:text-white">
-                    {goat.signalStrength != null ? `${goat.signalStrength} dBm` : 'N/A'}
+                    {livestock.signalStrength != null ? `${livestock.signalStrength} dBm` : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -324,16 +324,16 @@ export default function GoatDetail() {
                     </div>
                   )}
                   <p className="text-[11px] text-muted dark:text-dark-muted">
-                    This collar reports GPS, battery, and temperature for {goat.goatId}. To change the
+                    This collar reports GPS, battery, and temperature for {livestock.livestockId}. To change the
                     module, use Edit Record.
                   </p>
                 </div>
               ) : (
                 <div className="mt-4 rounded-2xl bg-surface-light p-4 text-center dark:bg-dark-surface">
                   <p className="text-xs text-muted dark:text-dark-muted">
-                    {goat.deviceId
-                      ? `Linked device "${goat.deviceId}" is not registered in this farm's device list.`
-                      : 'No collar is linked to this goat yet. Use Edit Record to assign a module.'}
+                    {livestock.deviceId
+                      ? `Linked device "${livestock.deviceId}" is not registered in this farm's device list.`
+                      : 'No collar is linked to this livestock yet. Use Edit Record to assign a module.'}
                   </p>
                 </div>
               )}
@@ -358,12 +358,12 @@ export default function GoatDetail() {
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
               <div className="rounded-2xl bg-surface-light p-4 dark:bg-dark-surface">
                 <span className="font-semibold text-ink dark:text-white flex items-center gap-1.5">
-                  <FiHeart className="text-rose-500" /> Health Status: <span className="text-primary">{goat.healthStatus}</span>
+                  <FiHeart className="text-rose-500" /> Health Status: <span className="text-primary">{livestock.healthStatus}</span>
                 </span>
                 <p className="mt-2 text-muted dark:text-dark-muted">
-                  Vaccination: <span className="font-semibold text-ink dark:text-gray-200">{goat.vaccinationStatus}</span>
+                  Vaccination: <span className="font-semibold text-ink dark:text-gray-200">{livestock.vaccinationStatus}</span>
                 </p>
-                {goat.medicalNotes && <p className="mt-2 text-ink dark:text-gray-300">Notes: {goat.medicalNotes}</p>}
+                {livestock.medicalNotes && <p className="mt-2 text-ink dark:text-gray-300">Notes: {livestock.medicalNotes}</p>}
               </div>
 
               <div className="rounded-2xl bg-surface-light p-4 dark:bg-dark-surface">
@@ -371,7 +371,7 @@ export default function GoatDetail() {
                   <FiCalendar className="text-blue-500" /> General Remarks
                 </span>
                 <p className="mt-2 text-muted dark:text-dark-muted">
-                  {goat.remarks || 'No specific remarks recorded for this goat.'}
+                  {livestock.remarks || 'No specific remarks recorded for this livestock.'}
                 </p>
               </div>
             </div>
@@ -388,14 +388,14 @@ export default function GoatDetail() {
               </Link>
             </div>
 
-            {goat.lat != null && goat.lng != null ? (
+            {livestock.lat != null && livestock.lng != null ? (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-surface-light p-4 dark:bg-dark-surface">
                 <div>
                   <p className="text-sm font-bold text-ink dark:text-white">
-                    Latitude: {goat.lat.toFixed(5)}, Longitude: {goat.lng.toFixed(5)}
+                    Latitude: {livestock.lat.toFixed(5)}, Longitude: {livestock.lng.toFixed(5)}
                   </p>
                   <p className="mt-0.5 text-xs text-muted dark:text-dark-muted">
-                    Last synchronized: {goat.lastSeen || 'Unknown'}
+                    Last synchronized: {livestock.lastSeen || 'Unknown'}
                   </p>
                 </div>
                 <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
@@ -411,7 +411,7 @@ export default function GoatDetail() {
         </div>
       )}
 
-      <AddGoatModal open={editOpen} onClose={() => setEditOpen(false)} goat={goat} />
+      <AddLivestockModal open={editOpen} onClose={() => setEditOpen(false)} livestock={livestock} />
     </div>
   );
 }

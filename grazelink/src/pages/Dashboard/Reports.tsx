@@ -4,13 +4,13 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import EmptyState from '@/components/Dashboard/EmptyState';
-import { useAllGoats } from '@/hooks/useAllGoats';
-import { Goat } from '@/types/goat';
+import { useAllLivestock } from '@/hooks/useAllLivestock';
+import { Livestock } from '@/types/livestock';
 
 type Range = 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
 
-const COLUMNS: { key: keyof Goat; label: string }[] = [
-  { key: 'goatId', label: 'Goat ID' },
+const COLUMNS: { key: keyof Livestock; label: string }[] = [
+  { key: 'livestockId', label: 'Livestock ID' },
   { key: 'collarId', label: 'Collar ID' },
   { key: 'name', label: 'Name' },
   { key: 'breed', label: 'Breed' },
@@ -27,18 +27,18 @@ const COLUMNS: { key: keyof Goat; label: string }[] = [
   { key: 'lastSeen', label: 'Last Sync' },
 ];
 
-function toTimestamp(goat: Goat): number | null {
-  const ts = goat.createdAt as { seconds?: number } | undefined;
+function toTimestamp(livestock: Livestock): number | null {
+  const ts = livestock.createdAt as { seconds?: number } | undefined;
   if (ts && typeof ts.seconds === 'number') return ts.seconds * 1000;
   return null;
 }
 
-function filterByRange(goats: Goat[], range: Range, customFrom: string, customTo: string) {
+function filterByRange(livestock: Livestock[], range: Range, customFrom: string, customTo: string) {
   if (range === 'Custom') {
-    if (!customFrom || !customTo) return goats;
+    if (!customFrom || !customTo) return livestock;
     const from = new Date(customFrom).getTime();
     const to = new Date(customTo).getTime() + 24 * 60 * 60 * 1000 - 1;
-    return goats.filter((g) => {
+    return livestock.filter((g) => {
       const t = toTimestamp(g);
       return t === null ? true : t >= from && t <= to;
     });
@@ -46,14 +46,14 @@ function filterByRange(goats: Goat[], range: Range, customFrom: string, customTo
 
   const days = range === 'Daily' ? 1 : range === 'Weekly' ? 7 : 30;
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-  return goats.filter((g) => {
+  return livestock.filter((g) => {
     const t = toTimestamp(g);
     return t === null ? true : t >= cutoff;
   });
 }
 
-function rowsFor(goats: Goat[]) {
-  return goats.map((g) =>
+function rowsFor(livestock: Livestock[]) {
+  return livestock.map((g) =>
     COLUMNS.map(({ key }) => {
       const v = g[key];
       return v === undefined || v === null ? '' : String(v);
@@ -62,14 +62,14 @@ function rowsFor(goats: Goat[]) {
 }
 
 export default function Reports() {
-  const { goats, loading } = useAllGoats();
+  const { livestock, loading } = useAllLivestock();
   const [range, setRange] = useState<Range>('Daily');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
   const filtered = useMemo(
-    () => filterByRange(goats, range, customFrom, customTo),
-    [goats, range, customFrom, customTo]
+    () => filterByRange(livestock, range, customFrom, customTo),
+    [livestock, range, customFrom, customTo]
   );
 
   const headers = COLUMNS.map((c) => c.label);
@@ -206,7 +206,7 @@ export default function Reports() {
               <tbody className="divide-y divide-black/5 dark:divide-white/5">
                 {filtered.map((g) => (
                   <tr key={g.id} className="hover:bg-surface-light/50 dark:hover:bg-dark-surface/50">
-                    <td className="py-3 pr-4 font-bold text-ink dark:text-white">{g.goatId}</td>
+                    <td className="py-3 pr-4 font-bold text-ink dark:text-white">{g.livestockId}</td>
                     <td className="py-3 pr-4 text-muted dark:text-dark-muted">{g.collarId}</td>
                     <td className="py-3 pr-4 font-semibold text-ink dark:text-gray-200">{g.name || '—'}</td>
                     <td className="py-3 pr-4">{g.breed}</td>

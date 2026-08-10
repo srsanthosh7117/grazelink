@@ -16,9 +16,9 @@ const EMPTY: Counts = { total: null, healthy: null, sick: null, gps: null };
  * Aggregate herd statistics. Only the total count is queried server-side
  * (single-field `farmUid` filter — no composite index required). Health and
  * GPS breakdowns are null here and computed client-side from the herd array
- * by callers that already have the goats loaded.
+ * by callers that already have the livestock loaded.
  */
-export function useGoatsCounts() {
+export function useLivestockCounts() {
   const { user } = useAuth();
   const [counts, setCounts] = useState<Counts>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export function useGoatsCounts() {
     }
 
     setLoading(true);
-    const ref = collection(db, 'goats');
+    const ref = collection(db, 'livestock');
     const q = query(ref, where('farmUid', '==', user.uid));
 
     getCountFromServer(q)
@@ -40,7 +40,7 @@ export function useGoatsCounts() {
         setLoading(false);
       })
       .catch((err) => {
-        console.warn('Goats count query failed:', err);
+        console.warn('Livestock count query failed:', err);
         setCounts(EMPTY);
         setLoading(false);
       });

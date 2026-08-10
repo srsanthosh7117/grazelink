@@ -4,21 +4,21 @@ import { FiX, FiUpload, FiLayers } from 'react-icons/fi';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/context/ToastContext';
 import {
-  bulkImportGoats,
-  generateGoatRows,
-  getNextGoatStart,
-  parseGoatCsv,
+  bulkImportLivestock,
+  generateLivestockRows,
+  getNextLivestockStart,
+  parseLivestockCsv,
   ImportRow,
 } from '@/services/bulkImport';
 
-interface BulkAddGoatsModalProps {
+interface BulkAddLivestockModalProps {
   open: boolean;
   onClose: () => void;
 }
 
 const QUICK_COUNTS = [100, 500, 1000, 5000, 50000];
 
-export default function BulkAddGoatsModal({ open, onClose }: BulkAddGoatsModalProps) {
+export default function BulkAddLivestockModal({ open, onClose }: BulkAddLivestockModalProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -55,7 +55,7 @@ export default function BulkAddGoatsModal({ open, onClose }: BulkAddGoatsModalPr
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const rows = parseGoatCsv(String(reader.result ?? ''));
+        const rows = parseLivestockCsv(String(reader.result ?? ''));
         if (rows.length === 0) throw new Error('CSV has no data rows.');
         setCsvRows(rows);
         setCsvName(file.name);
@@ -94,18 +94,18 @@ export default function BulkAddGoatsModal({ open, onClose }: BulkAddGoatsModalPr
           farmName: row.farmName ?? opts.farmName,
           owner: row.owner ?? opts.owner,
           shedName: row.shedName ?? (shedsList.length ? shedsList[0] : undefined),
-          goatId: row.goatId ?? `GT-${String(index + 1).padStart(5, '0')}`,
+          livestockId: row.livestockId ?? `GT-${String(index + 1).padStart(5, '0')}`,
           collarId: row.collarId ?? `CL-${String(index + 1).padStart(5, '0')}`,
         }));
       } else {
-        const start = await getNextGoatStart(user.uid);
-        rows = generateGoatRows(desired, start, opts);
+        const start = await getNextLivestockStart(user.uid);
+        rows = generateLivestockRows(desired, start, opts);
       }
 
-      const written = await bulkImportGoats(user.uid, rows, opts, (done, total) =>
+      const written = await bulkImportLivestock(user.uid, rows, opts, (done, total) =>
         setProgress({ done, total }),
       );
-      showToast('success', `${written.toLocaleString()} goats added successfully.`);
+      showToast('success', `${written.toLocaleString()} livestock added successfully.`);
       close();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not complete the bulk import.';
@@ -138,7 +138,7 @@ export default function BulkAddGoatsModal({ open, onClose }: BulkAddGoatsModalPr
           >
             <div className="flex items-center justify-between border-b border-black/5 pb-4 dark:border-white/5">
               <div>
-                <h2 className="text-xl font-bold text-ink dark:text-white">Bulk Add Goats</h2>
+                <h2 className="text-xl font-bold text-ink dark:text-white">Bulk Add Livestock</h2>
                 <p className="text-xs text-muted dark:text-dark-muted">
                   Generate a whole herd at once, or import from a CSV file.
                 </p>
@@ -156,7 +156,7 @@ export default function BulkAddGoatsModal({ open, onClose }: BulkAddGoatsModalPr
             <div className="mt-6 space-y-5">
               <div>
                 <label className="text-xs font-semibold text-muted dark:text-dark-muted">
-                  Number of goats to add
+                  Number of livestock to add
                 </label>
                 <input
                   type="number"
@@ -232,7 +232,7 @@ export default function BulkAddGoatsModal({ open, onClose }: BulkAddGoatsModalPr
 
               <p className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
                 Large imports count against Firestore write quota. The free Spark plan allows 20,000
-                writes/day; enable Blaze billing for 50,000+ goats.
+                writes/day; enable Blaze billing for 50,000+ livestock.
               </p>
 
               {running && progress && (
@@ -260,7 +260,7 @@ export default function BulkAddGoatsModal({ open, onClose }: BulkAddGoatsModalPr
                   disabled={running || effectiveTotal < 1}
                   className="flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-white shadow-card transition-all hover:scale-[1.02] hover:bg-primary-dark disabled:opacity-60"
                 >
-                  <FiLayers /> {running ? 'Adding...' : `Add ${effectiveTotal.toLocaleString()} Goats`}
+                  <FiLayers /> {running ? 'Adding...' : `Add ${effectiveTotal.toLocaleString()} Livestock`}
                 </button>
                 <button
                   onClick={close}

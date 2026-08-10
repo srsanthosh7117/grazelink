@@ -1,13 +1,13 @@
 import { adminDb } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
-// How long a collar may go silent before its goat is flagged offline.
+// How long a collar may go silent before its livestock is flagged offline.
 const OFFLINE_TIMEOUT_MS = Number(process.env.OFFLINE_TIMEOUT_MS || 10 * 60 * 1000);
 
 /**
- * Scans the herd for collars that have stopped reporting. A goat is marked
+ * Scans the herd for collars that have stopped reporting. A livestock is marked
  * Offline once `lastReportAt` is older than OFFLINE_TIMEOUT_MS, and a
- * deduped `deviceOffline` alert is raised (one open alert per goat). Goats
+ * deduped `deviceOffline` alert is raised (one open alert per livestock). Livestock
  * that never reported (no `lastReportAt`, e.g. unprovisioned) are skipped.
  *
  * Queries use a single-field filter (`lastReportAt != null`) so no composite
@@ -17,7 +17,7 @@ export async function runOfflineCheck() {
   const cutoff = new Date(Date.now() - OFFLINE_TIMEOUT_MS);
 
   try {
-    const snap = await adminDb.collection('goats').where('lastReportAt', '!=', null).get();
+    const snap = await adminDb.collection('livestock').where('lastReportAt', '!=', null).get();
     const alertsRef = adminDb.collection('alerts');
 
     let batch = adminDb.batch();
@@ -37,7 +37,7 @@ export async function runOfflineCheck() {
       if (lastReport.getTime() > cutoff.getTime()) continue; // recently reported
       if (data.status === 'Offline') continue;
 
-      const goatId = data.goatId;
+      const livestockId = data.livestockId;
       const farmUid = data.farmUid || 'system';
 
       batch.update(doc.ref, { status: 'Offline', updatedAt: FieldValue.serverTimestamp() });
@@ -57,8 +57,8 @@ export async function runOfflineCheck() {
         }
       }
 
-      if (goatId) {
-        const existing = await alertsRef.where('goatId', '==', goatId).limit(20).get();
+      if (livestockId) {
+        const existing = await alertsRef.where('livestockId', '==', livestockId).limit(20).get();
         const alreadyOpen = existing.docs.some(
           (alertDoc) =>
             alertDoc.data().farmUid === farmUid &&
@@ -70,8 +70,8 @@ export async function runOfflineCheck() {
           batch.set(alertsRef.doc(), {
             type: 'deviceOffline',
             severity: 'warning',
-            message: `Collar ${data.collarId || goatId} on goat ${goatId} stopped reporting. Last seen ${lastReport.toLocaleString()}.`,
-            goatId,
+            message: `Collar ${data.collarId || livestockId} on livestock ${livestockId} stopped reporting. Last seen ${lastReport.toLocaleString()}.`,
+            livestockId,
             deviceId: data.deviceId || null,
             farmUid,
             read: false,
@@ -86,7 +86,7 @@ export async function runOfflineCheck() {
     }
 
     await commit();
-    console.log(`[offlineMonitor] Check complete (${snap.size} tracked goats, cutoff ${cutoff.toISOString()})`);
+    console.log(`[offlineMonitor] Check complete (${snap.size} tracked livestock, cutoff ${cutoff.toISOString()})`);
   } catch (error) {
     console.error('[offlineMonitor] Error running offline check:', error);
   }

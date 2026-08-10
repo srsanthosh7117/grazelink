@@ -39,8 +39,8 @@ function formatDistance(km: number): string {
   return `${Math.round(km * 1000)} m`;
 }
 
-interface GoatAnalyticsProps {
-  goatId: string;
+interface LivestockAnalyticsProps {
+  livestockId: string;
 }
 
 type RangeKey = '7d' | '30d' | 'all';
@@ -51,7 +51,7 @@ const RANGES: { key: RangeKey; label: string }[] = [
   { key: 'all', label: 'All time' },
 ];
 
-export default function GoatAnalytics({ goatId }: GoatAnalyticsProps) {
+export default function LivestockAnalytics({ livestockId }: LivestockAnalyticsProps) {
   const [range, setRange] = useState<RangeKey>('all');
   const { theme } = useTheme();
 
@@ -62,7 +62,7 @@ export default function GoatAnalytics({ goatId }: GoatAnalyticsProps) {
     return d;
   }, [range]);
 
-  const { history, totalDistance, loading } = useGpsHistory(goatId, { from: rangeFrom });
+  const { history, totalDistance, loading } = useGpsHistory(livestockId, { from: rangeFrom });
 
   const historyAsc = useMemo(
     () =>
@@ -212,7 +212,7 @@ export default function GoatAnalytics({ goatId }: GoatAnalyticsProps) {
           <FiActivity className="mx-auto text-2xl text-muted dark:text-dark-muted" />
           <p className="mt-3 text-sm font-semibold text-ink dark:text-white">No telemetry history yet</p>
           <p className="mt-1 text-xs text-muted dark:text-dark-muted">
-            Charts for this goat will appear once the collar starts reporting GPS, battery, and temperature.
+            Charts for this livestock will appear once the collar starts reporting GPS, battery, and temperature.
           </p>
         </div>
       ) : (

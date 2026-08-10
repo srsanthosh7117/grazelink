@@ -15,13 +15,13 @@ import {
 import { auth, db } from './firebase';
 import { withTimeout } from '@/utils/withTimeout';
 
-const COLLECTIONS = ['goats', 'devices', 'gpsHistory', 'alerts'] as const;
+const COLLECTIONS = ['livestock', 'devices', 'gpsHistory', 'alerts'] as const;
 
 /**
  * Permanently deletes the signed-in farm's account:
  *  1. Re-authenticates with the account password (Firebase requires a
  *     recent login before an account can be deleted).
- *  2. Deletes every farm-owned document (profile, goats, devices,
+ *  2. Deletes every farm-owned document (profile, livestock, devices,
  *     gpsHistory, alerts) in batches.
  *  3. Deletes the Firebase Auth user, which also signs the client out.
  */

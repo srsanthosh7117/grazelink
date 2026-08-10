@@ -5,16 +5,16 @@ import { FiX, FiCopy, FiCheck, FiMapPin, FiLoader, FiRefreshCw } from 'react-ico
 import { useAuth } from '@/hooks/useAuth';
 import { useDevices } from '@/hooks/useDevices';
 import { useFarmProfile } from '@/hooks/useFarmProfile';
-import { registerGoat, generateGoatId } from '@/services/goats';
+import { registerLivestock, generateLivestockId } from '@/services/livestock';
 import { registerDevice, updateDevice, getDevice } from '@/services/devices';
-import { Goat, GoatPayload } from '@/types/goat';
+import { Livestock, LivestockPayload } from '@/types/livestock';
 import { DevicePayload } from '@/types/device';
 import { useToast } from '@/context/ToastContext';
 
-interface AddGoatModalProps {
+interface AddLivestockModalProps {
   open: boolean;
   onClose: () => void;
-  goat?: Goat | null;
+  livestock?: Livestock | null;
   /** Renders the form as an inline page card instead of a modal overlay. */
   embedded?: boolean;
 }
@@ -29,7 +29,7 @@ const SHED_OPTIONS = ['Shed A', 'Shed B', 'Shed C', 'Shed D'];
 /** Default location used when a user simulates a GPS fix (no collar hardware). */
 const SIMULATED_COORDS = { lat: 11.2163, lng: 78.1637 };
 
-export default function AddGoatModal({ open, onClose, goat, embedded = false }: AddGoatModalProps) {
+export default function AddLivestockModal({ open, onClose, livestock, embedded = false }: AddLivestockModalProps) {
   const { user } = useAuth();
   const { devices } = useDevices();
   const { profile } = useFarmProfile();
@@ -42,7 +42,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
   const [gpsState, setGpsState] = useState<'idle' | 'waiting' | 'confirmed'>('idle');
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [copied, setCopied] = useState(false);
-  const isEdit = Boolean(goat);
+  const isEdit = Boolean(livestock);
 
   const {
     register,
@@ -50,8 +50,8 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
     reset,
     setValue,
     formState: { errors },
-  } = useForm<GoatPayload>({
-    defaultValues: goat ?? {
+  } = useForm<LivestockPayload>({
+    defaultValues: livestock ?? {
       gender: 'Male',
       healthStatus: 'Healthy',
       vaccinationStatus: 'Up to date',
@@ -65,15 +65,15 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
       setGpsCoords(null);
       setCopied(false);
       setError('');
-      if (goat) {
-        reset(goat);
-        const linked = devices.find((d) => d.deviceId === goat.deviceId);
+      if (livestock) {
+        reset(livestock);
+        const linked = devices.find((d) => d.deviceId === livestock.deviceId);
         if (linked) {
           setSelectedDeviceId(linked.id);
           setManualDeviceId('');
         } else {
           setSelectedDeviceId('');
-          setManualDeviceId(goat.deviceId ?? '');
+          setManualDeviceId(livestock.deviceId ?? '');
         }
       } else {
         reset({
@@ -86,11 +86,11 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
         setSelectedDeviceId('');
         setManualDeviceId('');
         if (user) {
-          generateGoatId(user.uid).then((id) => setValue('goatId', id));
+          generateLivestockId(user.uid).then((id) => setValue('livestockId', id));
         }
       }
     }
-  }, [open, goat, reset, setValue, user, profile, devices]);
+  }, [open, livestock, reset, setValue, user, profile, devices]);
 
   // Poll the freshly registered collar until its first GPS fix arrives.
   useEffect(() => {
@@ -206,7 +206,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
     }
   };
 
-  const onSubmit = async (data: GoatPayload) => {
+  const onSubmit = async (data: LivestockPayload) => {
     if (!user) return;
 
     if (pendingDevice && gpsState !== 'confirmed') {
@@ -238,7 +238,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
       }
     }
 
-    const payload: GoatPayload = {
+    const payload: LivestockPayload = {
       ...data,
       age: Number(data.age),
       weight: Number(data.weight),
@@ -246,7 +246,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
       farmName: profile?.farmName || (user.displayName ? `${user.displayName}'s Farm` : 'Red valley Farm'),
       owner: user.displayName || user.email || 'Farm Owner',
     };
-    if (!payload.collarId) payload.collarId = `CL-${String(data.goatId).replace(/^GT-/i, '')}`;
+    if (!payload.collarId) payload.collarId = `CL-${String(data.livestockId).replace(/^GT-/i, '')}`;
     if (!payload.dateOfBirth && payload.age > 0) {
       const d = new Date();
       d.setMonth(d.getMonth() - Number(payload.age));
@@ -266,14 +266,14 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
     else delete payload.deviceId;
 
     try {
-      const goatDocId = isEdit && goat ? goat.id : (await registerGoat(user.uid, payload)).id;
+      const livestockDocId = isEdit && livestock ? livestock.id : (await registerLivestock(user.uid, payload)).id;
 
-      if (isEdit && goat?.deviceId && goat.deviceId !== linkedDeviceId) {
-        const oldDevice = devices.find((d) => d.deviceId === goat.deviceId);
+      if (isEdit && livestock?.deviceId && livestock.deviceId !== linkedDeviceId) {
+        const oldDevice = devices.find((d) => d.deviceId === livestock.deviceId);
         if (oldDevice) {
           await updateDevice(oldDevice.id, {
-            goatId: null,
-            goatDocId: null,
+            livestockId: null,
+            livestockDocId: null,
             collarId: null,
             farmName: null,
             shedName: null,
@@ -283,18 +283,18 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
 
       if (linkedDeviceId && linkedDeviceDocId) {
         await updateDevice(linkedDeviceDocId, {
-          goatId: data.goatId,
-          goatDocId,
+          livestockId: data.livestockId,
+          livestockDocId,
           collarId: payload.collarId,
           farmName: payload.farmName,
           shedName: payload.shedName,
         });
       }
 
-      showToast('success', `${data.goatId} saved successfully.`);
+      showToast('success', `${data.livestockId} saved successfully.`);
       close();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not save goat record.';
+      const message = err instanceof Error ? err.message : 'Could not save livestock record.';
       setError(message);
       showToast('error', message);
     } finally {
@@ -314,7 +314,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
       <div className="flex items-center justify-between border-b border-black/5 pb-4 dark:border-white/5">
               <div>
                 <h2 className="text-xl font-bold text-ink dark:text-white">
-                  {isEdit ? 'Edit Livestock Record' : 'Register New Goat'}
+                  {isEdit ? 'Edit Livestock Record' : 'Register New Livestock'}
                 </h2>
                 <p className="text-xs text-muted dark:text-dark-muted">
                   Fill in the essentials — telemetry (incl. GPS) is reported by the collar itself.
@@ -331,15 +331,15 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
 
             <form onSubmit={handleSubmit(onSubmit)} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <label className={labelClass}>Goat ID</label>
-                <input className={inputClass} {...register('goatId', { required: true })} placeholder="GT-0001" />
-                {errors.goatId && <p className="mt-1 text-xs text-rose-500">Required</p>}
+                <label className={labelClass}>Livestock ID</label>
+                <input className={inputClass} {...register('livestockId', { required: true })} placeholder="GT-0001" />
+                {errors.livestockId && <p className="mt-1 text-xs text-rose-500">Required</p>}
               </div>
 
               <div>
                 <label className={labelClass}>Breed</label>
                 <select className={inputClass} {...register('breed', { required: true })}>
-                  {(goat && !BREED_OPTIONS.includes(goat.breed) ? [goat.breed, ...BREED_OPTIONS] : BREED_OPTIONS).map(
+                  {(livestock && !BREED_OPTIONS.includes(livestock.breed) ? [livestock.breed, ...BREED_OPTIONS] : BREED_OPTIONS).map(
                     (b) => (
                       <option key={b} value={b}>
                         {b}
@@ -402,7 +402,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
               <div>
                 <label className={labelClass}>Shed Name</label>
                 <select className={inputClass} {...register('shedName')}>
-                  {(goat && !SHED_OPTIONS.includes(goat.shedName) ? [goat.shedName, ...SHED_OPTIONS] : SHED_OPTIONS).map(
+                  {(livestock && !SHED_OPTIONS.includes(livestock.shedName) ? [livestock.shedName, ...SHED_OPTIONS] : SHED_OPTIONS).map(
                     (s) => (
                       <option key={s} value={s}>
                         {s}
@@ -427,7 +427,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
                     </option>
                   )}
                   {devices
-                    .filter((d) => !d.goatId || (isEdit && goat && d.goatId === goat.goatId))
+                    .filter((d) => !d.livestockId || (isEdit && livestock && d.livestockId === livestock.livestockId))
                     .map((d) => (
                       <option key={d.id} value={d.id} disabled={d.registrationStatus === 'pending'}>
                         {d.deviceId} · Collar {d.collarId} ({d.status})
@@ -435,10 +435,10 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
                       </option>
                     ))}
                   {devices
-                    .filter((d) => d.goatId && !(isEdit && goat && d.goatId === goat.goatId))
+                    .filter((d) => d.livestockId && !(isEdit && livestock && d.livestockId === livestock.livestockId))
                     .map((d) => (
                       <option key={d.id} value={d.id}>
-                        {d.deviceId} · Collar {d.collarId} (linked to {d.goatId})
+                        {d.deviceId} · Collar {d.collarId} (linked to {d.livestockId})
                       </option>
                     ))}
                   <option value="new">＋ Register a new collar...</option>
@@ -456,7 +456,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
                     />
                     <p className="mt-2 text-xs text-muted dark:text-dark-muted">
                       The collar is registered, then waits to report its <b>first GPS fix</b>.
-                      Only then can it be linked to this goat — the coordinates come from the collar itself.
+                      Only then can it be linked to this livestock — the coordinates come from the collar itself.
                     </p>
                     <button
                       type="button"
@@ -512,7 +512,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
                           </button>
                         </div>
                         <p className="mt-2 rounded-xl bg-amber-500/10 p-2 text-[11px] text-amber-700 dark:text-amber-400">
-                          Saving the goat is blocked until the GPS fix is confirmed.
+                          Saving the livestock is blocked until the GPS fix is confirmed.
                         </p>
                         <button
                           type="button"
@@ -540,7 +540,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
                           </p>
                         )}
                         <p className="mt-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
-                          This collar is now linkable. Save the goat to attach it.
+                          This collar is now linkable. Save the livestock to attach it.
                         </p>
                       </div>
                     )}
@@ -561,7 +561,7 @@ export default function AddGoatModal({ open, onClose, goat, embedded = false }: 
                   disabled={saving}
                   className="rounded-full bg-primary px-8 py-3 text-sm font-semibold text-white shadow-card transition-all hover:scale-[1.02] hover:bg-primary-dark disabled:opacity-60"
                 >
-                  {saving ? 'Saving...' : isEdit ? 'Update Goat' : 'Save Goat'}
+                  {saving ? 'Saving...' : isEdit ? 'Update Livestock' : 'Save Livestock'}
                 </button>
                 <button
                   type="button"

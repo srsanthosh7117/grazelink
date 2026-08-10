@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
-import { Goat } from '@/types/goat';
+import { Livestock } from '@/types/livestock';
 import {
   GeoPoint,
   geofenceRing,
@@ -10,9 +10,9 @@ import {
 import { getBatteryThreshold } from '@/utils/alertThresholds';
 
 interface GeoGlobeProps {
-  goats: Goat[];
-  selectedGoatId: string;
-  onSelect: (goatId: string) => void;
+  livestock: Livestock[];
+  selectedLivestockId: string;
+  onSelect: (livestockId: string) => void;
   center: GeoPoint | null;
   radiusMeters: number;
   trailPoints?: { lat: number; lng: number }[];
@@ -36,15 +36,15 @@ interface RingObject {
   breached: boolean;
 }
 
-function pinColorFor(goat: Goat, breached: boolean): string {
+function pinColorFor(livestock: Livestock, breached: boolean): string {
   if (breached) return '#EF4444';
-  if (goat.battery != null && goat.battery < getBatteryThreshold()) return '#F59E0B';
-  return goat.status === 'Online' ? '#22C55E' : '#9CA3AF';
+  if (livestock.battery != null && livestock.battery < getBatteryThreshold()) return '#F59E0B';
+  return livestock.status === 'Online' ? '#22C55E' : '#9CA3AF';
 }
 
 export default function GeoGlobe({
-  goats,
-  selectedGoatId,
+  livestock,
+  selectedLivestockId,
   onSelect,
   center,
   radiusMeters,
@@ -84,18 +84,18 @@ export default function GeoGlobe({
   const anyBreach = useMemo(
     () =>
       center
-        ? goats.some((g) => (g.lat != null && g.lng != null ? geofenceStatus(g, center, radiusMeters).breached : false))
+        ? livestock.some((g) => (g.lat != null && g.lng != null ? geofenceStatus(g, center, radiusMeters).breached : false))
         : false,
-    [goats, center, radiusMeters],
+    [livestock, center, radiusMeters],
   );
 
-  const pointsData = useMemo(() => goats.filter((g) => g.lat != null && g.lng != null), [goats]);
+  const pointsData = useMemo(() => livestock.filter((g) => g.lat != null && g.lng != null), [livestock]);
 
   const pathsData = useMemo(() => (trailPoints && trailPoints.length > 1 ? [trailPoints] : []), [trailPoints]);
 
   const selected = useMemo(
-    () => pointsData.find((g) => g.goatId === selectedGoatId),
-    [pointsData, selectedGoatId],
+    () => pointsData.find((g) => g.livestockId === selectedLivestockId),
+    [pointsData, selectedLivestockId],
   );
 
   useEffect(() => {
@@ -143,21 +143,21 @@ export default function GeoGlobe({
         pointLng="lng"
         pointColor={(d: object) =>
           pinColorFor(
-            d as Goat,
+            d as Livestock,
             center
-              ? geofenceStatus(d as Goat, center, radiusMeters).breached
+              ? geofenceStatus(d as Livestock, center, radiusMeters).breached
               : false,
           )
         }
         pointAltitude={0.015}
         pointRadius={(d: object) =>
-          (d as Goat).goatId === selectedGoatId ? 0.55 : 0.35
+          (d as Livestock).livestockId === selectedLivestockId ? 0.55 : 0.35
         }
         pointLabel={(d: object) => {
-          const g = d as Goat;
-          return `${g.goatId}${g.name ? ` (${g.name})` : ''} · ${g.status ?? 'Offline'}`;
+          const g = d as Livestock;
+          return `${g.livestockId}${g.name ? ` (${g.name})` : ''} · ${g.status ?? 'Offline'}`;
         }}
-        onPointClick={(d: object) => onSelect((d as Goat).goatId)}
+        onPointClick={(d: object) => onSelect((d as Livestock).livestockId)}
         polygonsData={ring}
         polygonGeoJsonGeometry={(d: object) =>
           (d as RingObject).geometry as unknown as { type: string; coordinates: number[] }

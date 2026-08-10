@@ -112,7 +112,7 @@ export default function Alerts() {
                   </div>
                   <p className="mt-1 text-xs text-muted dark:text-dark-muted">{alert.message}</p>
                   <span className="mt-1 block text-[10px] text-muted/70 dark:text-dark-muted/60">
-                    Goat: {alert.goatId || 'N/A'} · Device: {alert.deviceId || 'N/A'}
+                    Livestock: {alert.livestockId || 'N/A'} · Device: {alert.deviceId || 'N/A'}
                   </span>
                 </div>
               </div>

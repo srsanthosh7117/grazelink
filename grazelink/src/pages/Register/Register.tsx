@@ -64,7 +64,7 @@ export default function Register() {
         district: data.district,
         village: data.village,
       });
-      showToast('success', "Account created successfully! Let's register your first collar and goat.");
+      showToast('success', "Account created successfully! Let's register your first collar and livestock.");
       navigate('/register-device');
     } catch (err) {
       const message = getAuthErrorMessage(err);

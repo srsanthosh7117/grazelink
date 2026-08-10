@@ -4,7 +4,7 @@ import { GpsHistoryEntry } from '@/types/gpsHistory';
 import { calculateDistance, getGpsHistory } from '@/services/gpsHistory';
 
 export function useGpsHistory(
-  goatId?: string,
+  livestockId?: string,
   options?: { from?: Date; to?: Date; maxEntries?: number },
 ) {
   const { user } = useAuth();
@@ -17,14 +17,14 @@ export function useGpsHistory(
   const maxEntries = options?.maxEntries;
 
   useEffect(() => {
-    if (!user || !goatId) {
+    if (!user || !livestockId) {
       setHistory([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    getGpsHistory(goatId, user.uid, { from, to, maxEntries: maxEntries ?? 300 })
+    getGpsHistory(livestockId, user.uid, { from, to, maxEntries: maxEntries ?? 300 })
       .then((data) => {
         setHistory(data);
         setLoading(false);
@@ -34,7 +34,7 @@ export function useGpsHistory(
         setError(err.message);
         setLoading(false);
       });
-  }, [user, goatId, from, to, maxEntries]);
+  }, [user, livestockId, from, to, maxEntries]);
 
   const totalDistance = calculateDistance(history);
 

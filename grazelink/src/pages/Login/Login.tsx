@@ -157,7 +157,7 @@ export default function Login() {
             .
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-gray-400 xl:text-base">
-            A GPS collar on every goat, and your whole farm in your pocket. Know where each animal
+            A GPS collar on every livestock, and your whole farm in your pocket. Know where each animal
             is, how it's doing, and when it needs you — before it's too late.
           </p>
 

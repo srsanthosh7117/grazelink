@@ -22,7 +22,7 @@ const char* apiKey = "PASTE_THIS_DEVICE_API_KEY_FROM_DASHBOARD";
 // Device Identification
 const char* deviceId = "ESP32-001";
 const char* collarId = "CL-1042";
-const char* goatId   = "GT-0001";
+const char* livestockId   = "GT-0001";
 
 void setup() {
   Serial.begin(115200);
@@ -74,7 +74,7 @@ void sendTelemetry(float lat, float lng, int bat, float temp, int rssi) {
   StaticJsonDocument<256> doc;
   doc["deviceId"]       = deviceId;
   doc["collarId"]       = collarId;
-  doc["goatId"]         = goatId;
+  doc["livestockId"]         = livestockId;
   doc["latitude"]       = lat;
   doc["longitude"]      = lng;
   doc["battery"]        = bat;

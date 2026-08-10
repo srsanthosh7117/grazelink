@@ -3,32 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { FiMapPin, FiBatteryCharging, FiThermometer, FiZap, FiCheckCircle, FiAlertTriangle, FiTrendingUp } from 'react-icons/fi';
 import EmptyState from '@/components/Dashboard/EmptyState';
 import GeoGlobe from '@/components/Dashboard/GeoGlobe';
-import { useGoats } from '@/hooks/useGoats';
+import { useLivestock } from '@/hooks/useLivestock';
 import { useGpsHistory } from '@/hooks/useGpsHistory';
 import { farmCenterOf, geofenceStatus } from '@/hooks/useGeofence';
 import { useFarmGeofence } from '@/hooks/useFarmGeofence';
 
 export default function GPSTracking() {
-  const { goats, loading } = useGoats();
+  const { livestock, loading } = useLivestock();
   const { radiusM, enabled, center: savedCenter } = useFarmGeofence();
   const navigate = useNavigate();
 
-  const [selectedGoatId, setSelectedGoatId] = useState<string>('all');
+  const [selectedLivestockId, setSelectedLivestockId] = useState<string>('all');
 
-  const located = useMemo(() => goats.filter((g) => g.lat != null && g.lng != null), [goats]);
-  const center = useMemo(() => savedCenter ?? farmCenterOf(goats), [savedCenter, goats]);
+  const located = useMemo(() => livestock.filter((g) => g.lat != null && g.lng != null), [livestock]);
+  const center = useMemo(() => savedCenter ?? farmCenterOf(livestock), [savedCenter, livestock]);
 
-  const activeGoat =
-    selectedGoatId !== 'all' ? located.find((g) => g.goatId === selectedGoatId) : located[0];
+  const activeLivestock =
+    selectedLivestockId !== 'all' ? located.find((g) => g.livestockId === selectedLivestockId) : located[0];
 
-  const { history } = useGpsHistory(activeGoat?.goatId);
+  const { history } = useGpsHistory(activeLivestock?.livestockId);
 
   const trailPoints = useMemo(
     () =>
-      selectedGoatId !== 'all'
+      selectedLivestockId !== 'all'
         ? [...history].reverse().map((e) => ({ lat: e.latitude, lng: e.longitude }))
         : undefined,
-    [history, selectedGoatId],
+    [history, selectedLivestockId],
   );
 
   const breachCount = useMemo(() => {
@@ -39,7 +39,7 @@ export default function GPSTracking() {
   const insideCount = located.length - breachCount;
 
   const activeStatus =
-    activeGoat && center && enabled ? geofenceStatus(activeGoat, center, radiusM) : null;
+    activeLivestock && center && enabled ? geofenceStatus(activeLivestock, center, radiusM) : null;
 
   return (
     <div className="space-y-6">
@@ -68,14 +68,14 @@ export default function GPSTracking() {
 
           {located.length > 0 && (
             <select
-              value={selectedGoatId}
-              onChange={(e) => setSelectedGoatId(e.target.value)}
+              value={selectedLivestockId}
+              onChange={(e) => setSelectedLivestockId(e.target.value)}
               className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-ink outline-none shadow-soft transition-colors focus:border-primary dark:border-white/10 dark:bg-dark-card dark:text-white"
             >
               <option value="all">📍 All Active Collars ({located.length})</option>
               {located.map((g) => (
-                <option key={g.id} value={g.goatId}>
-                  {g.goatId} {g.name ? `(${g.name})` : ''} · Collar {g.collarId}
+                <option key={g.id} value={g.livestockId}>
+                  {g.livestockId} {g.name ? `(${g.name})` : ''} · Collar {g.collarId}
                 </option>
               ))}
             </select>
@@ -96,9 +96,9 @@ export default function GPSTracking() {
           {/* 3D Globe View */}
           <div className="overflow-hidden rounded-3xl border border-black/5 shadow-soft dark:border-white/5 dark:shadow-dark-card lg:col-span-3">
             <GeoGlobe
-              goats={located}
-              selectedGoatId={selectedGoatId}
-              onSelect={(goatId) => setSelectedGoatId(goatId)}
+              livestock={located}
+              selectedLivestockId={selectedLivestockId}
+              onSelect={(livestockId) => setSelectedLivestockId(livestockId)}
               center={center}
               radiusMeters={radiusM}
               trailPoints={trailPoints}
@@ -111,21 +111,21 @@ export default function GPSTracking() {
               <FiZap className="text-primary" /> Active Collar Panel
             </h2>
 
-            {activeGoat ? (
+            {activeLivestock ? (
               <div className="space-y-3 text-xs">
                 <div className="rounded-2xl bg-surface-light p-3 dark:bg-dark-surface">
-                  <span className="text-muted dark:text-dark-muted">Selected Goat</span>
+                  <span className="text-muted dark:text-dark-muted">Selected Livestock</span>
                   <p className="mt-0.5 text-sm font-extrabold text-ink dark:text-white">
-                    {activeGoat.goatId} {activeGoat.name ? `(${activeGoat.name})` : ''}
+                    {activeLivestock.livestockId} {activeLivestock.name ? `(${activeLivestock.name})` : ''}
                   </p>
-                  <p className="text-muted dark:text-dark-muted">Collar ID: {activeGoat.collarId}</p>
+                  <p className="text-muted dark:text-dark-muted">Collar ID: {activeLivestock.collarId}</p>
                 </div>
 
                 <button
-                  onClick={() => navigate(`/dashboard/goats/${activeGoat.id}`)}
+                  onClick={() => navigate(`/dashboard/livestock/${activeLivestock.id}`)}
                   className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-card transition-all hover:scale-[1.02] hover:bg-primary-dark"
                 >
-                  <FiTrendingUp className="text-sm" /> View {activeGoat.goatId} analytics
+                  <FiTrendingUp className="text-sm" /> View {activeLivestock.livestockId} analytics
                 </button>
 
                 <div className="rounded-2xl bg-surface-light p-3 dark:bg-dark-surface space-y-2">
@@ -134,7 +134,7 @@ export default function GPSTracking() {
                       <FiBatteryCharging className="text-emerald-500" /> Battery
                     </span>
                     <span className="font-bold text-ink dark:text-white">
-                      {activeGoat.battery != null ? `${activeGoat.battery}%` : 'N/A'}
+                      {activeLivestock.battery != null ? `${activeLivestock.battery}%` : 'N/A'}
                     </span>
                   </div>
 
@@ -143,14 +143,14 @@ export default function GPSTracking() {
                       <FiThermometer className="text-amber-500" /> Temp
                     </span>
                     <span className="font-bold text-ink dark:text-white">
-                      {activeGoat.temperature != null ? `${activeGoat.temperature}°C` : 'N/A'}
+                      {activeLivestock.temperature != null ? `${activeLivestock.temperature}°C` : 'N/A'}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-muted dark:text-dark-muted">Signal</span>
                     <span className="font-bold text-ink dark:text-white">
-                      {activeGoat.signalStrength != null ? `${activeGoat.signalStrength} dBm` : 'N/A'}
+                      {activeLivestock.signalStrength != null ? `${activeLivestock.signalStrength} dBm` : 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -158,7 +158,7 @@ export default function GPSTracking() {
                 <div className="rounded-2xl bg-surface-light p-3 dark:bg-dark-surface space-y-1">
                   <span className="text-muted dark:text-dark-muted">GPS Coordinates</span>
                   <p className="font-mono text-xs text-ink dark:text-gray-200">
-                    {activeGoat.lat?.toFixed(5)}, {activeGoat.lng?.toFixed(5)}
+                    {activeLivestock.lat?.toFixed(5)}, {activeLivestock.lng?.toFixed(5)}
                   </p>
                 </div>
 
@@ -184,7 +184,7 @@ export default function GPSTracking() {
               </div>
             ) : (
               <p className="text-xs text-muted dark:text-dark-muted">
-                Select a goat to inspect real-time collar telemetry.
+                Select a livestock to inspect real-time collar telemetry.
               </p>
             )}
           </div>
