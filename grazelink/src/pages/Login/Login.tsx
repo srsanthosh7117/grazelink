@@ -236,7 +236,7 @@ export default function Login() {
                     autoComplete="email"
                     {...register('username', { required: true })}
                     className={inputClass}
-                    placeholder="you@farm.com"
+                    placeholder="Enter your email"
                   />
                 </div>
                 {errors.username && (
@@ -321,7 +321,7 @@ export default function Login() {
                             type="email"
                             value={resetEmail}
                             onChange={(e) => setResetEmail(e.target.value)}
-                            placeholder="you@farm.com"
+                    placeholder="Enter your email"
                             className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-primary dark:border-white/10 dark:bg-dark-surface dark:text-white"
                           />
                           <button

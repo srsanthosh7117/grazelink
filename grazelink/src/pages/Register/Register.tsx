@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import logo from '@/assets/images/logo.jpeg';
 import { registerUser } from '@/services/auth';
 import { getAuthErrorMessage } from '@/utils/authErrors';
@@ -33,6 +34,8 @@ export default function Register() {
   const { showToast } = useToast();
   const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -89,41 +92,65 @@ export default function Register() {
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>Username</label>
-            <input {...register('username', { required: true })} className={inputClass} placeholder="farmowner" />
+            <input {...register('username', { required: true })} className={inputClass} placeholder="Enter username" />
             {errors.username && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
           <div>
             <label className={labelClass}>Full Name</label>
-            <input {...register('fullName', { required: true })} className={inputClass} placeholder="John Doe" />
+            <input {...register('fullName', { required: true })} className={inputClass} placeholder="Enter your name" />
             {errors.fullName && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
 
           <div>
             <label className={labelClass}>Email</label>
-            <input type="email" {...register('email', { required: true })} className={inputClass} placeholder="owner@farm.com" />
+            <input type="email" {...register('email', { required: true })} className={inputClass} placeholder="Enter your email" />
             {errors.email && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
           <div>
             <label className={labelClass}>Phone Number</label>
-            <input {...register('phoneNumber', { required: true })} className={inputClass} placeholder="+1 555 000 1111" />
+            <input {...register('phoneNumber', { required: true })} className={inputClass} placeholder="Enter your phone number" />
             {errors.phoneNumber && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
 
           <div>
             <label className={labelClass}>Password</label>
-            <input type="password" {...register('password', { required: true, minLength: 6 })} className={inputClass} />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                {...register('password', { required: true, minLength: 6 })}
+                className={`${inputClass} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-ink dark:text-dark-muted dark:hover:text-white"
+              >
+                {showPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
             {errors.password && <p className="mt-1 text-xs text-rose-500">Min 6 characters</p>}
           </div>
           <div>
             <label className={labelClass}>Confirm Password</label>
-            <input
-              type="password"
-              {...register('confirmPassword', {
-                required: true,
-                validate: (v) => v === password || 'Passwords do not match',
-              })}
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                {...register('confirmPassword', {
+                  required: true,
+                  validate: (v) => v === password || 'Passwords do not match',
+                })}
+                className={`${inputClass} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-ink dark:text-dark-muted dark:hover:text-white"
+              >
+                {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </div>
             {errors.confirmPassword && (
               <p className="mt-1 text-xs text-rose-500">{errors.confirmPassword.message}</p>
             )}
@@ -131,7 +158,7 @@ export default function Register() {
 
           <div>
             <label className={labelClass}>Farm Name</label>
-            <input {...register('farmName', { required: true })} className={inputClass} placeholder="Green Valley Farm" />
+            <input {...register('farmName', { required: true })} className={inputClass} placeholder="Enter farm name" />
             {errors.farmName && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
           <div>
@@ -142,7 +169,7 @@ export default function Register() {
 
           <div className="sm:col-span-2">
             <label className={labelClass}>Farm Address</label>
-            <input {...register('farmAddress', { required: true })} className={inputClass} placeholder="123 Farm Way" />
+            <input {...register('farmAddress', { required: true })} className={inputClass} placeholder="Enter your address" />
             {errors.farmAddress && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
 
