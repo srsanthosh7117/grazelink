@@ -27,15 +27,15 @@ constexpr uint32_t kWifiConnectTimeoutMs = 15000;
 // The domain or IP address of your Node.js backend — no https:// prefix,
 // no path. Replace with your real server address (e.g. your deployed
 // domain, or your machine's LAN IP like 192.168.1.42 for local testing).
-constexpr const char* kServerHost = "172.17.36.63";
-constexpr uint16_t kServerPort = 4000;
+constexpr const char* kServerHost = "grazelink-api.onrender.com";
+constexpr uint16_t kServerPort = 443;
 constexpr const char* kUploadPath = "/api/device/upload";
 constexpr const char* kRegisterPath = "/api/device/location";
-constexpr bool kUseTls = false;
+constexpr bool kUseTls = true;
 
-constexpr const char* kDeviceId = "ESP32-001";
-constexpr const char* kApiKey = "-3hNCmPjmeuJJYA9fPs319T7QAEKjXhh";
-constexpr const char* kGoatId = "Goat123";
+constexpr const char* kDeviceId = "GZL-001";
+constexpr const char* kApiKey = "gzl_24583dc21f179fa168734477ae34f2a16b521f05d40d1eaf";
+constexpr const char* kGoatId = "GT-0001";
 
 // -----------------------------------------------------------------------
 // Timing
