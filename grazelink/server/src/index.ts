@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import deviceRouter from './routes/device.js';
 import healthRouter from './routes/health.js';
+import { startOfflineMonitor } from './services/offlineMonitor.js';
 
 dotenv.config();
 
@@ -42,3 +43,8 @@ app.get('/', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`⚡ GrazeLink IoT Backend Server running on port ${PORT}`);
 });
+
+// Background job: flag collars that have stopped reporting (deviceOffline alerts)
+if (process.env.DISABLE_OFFLINE_MONITOR !== 'true') {
+  startOfflineMonitor();
+}

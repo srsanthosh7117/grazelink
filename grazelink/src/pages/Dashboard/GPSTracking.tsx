@@ -1,30 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiMapPin, FiBatteryCharging, FiThermometer, FiZap, FiCheckCircle, FiAlertTriangle, FiTrendingUp } from 'react-icons/fi';
 import EmptyState from '@/components/Dashboard/EmptyState';
 import GeoGlobe from '@/components/Dashboard/GeoGlobe';
 import { useGoats } from '@/hooks/useGoats';
-import { useAuth } from '@/hooks/useAuth';
-import { useAlerts } from '@/hooks/useAlerts';
 import { useGpsHistory } from '@/hooks/useGpsHistory';
-import {
-  farmCenterOf,
-  geofenceStatus,
-  useGeofenceSettings,
-} from '@/hooks/useGeofence';
-import { createAlert } from '@/services/alerts';
+import { farmCenterOf, geofenceStatus } from '@/hooks/useGeofence';
+import { useFarmGeofence } from '@/hooks/useFarmGeofence';
 
 export default function GPSTracking() {
   const { goats, loading } = useGoats();
-  const { user } = useAuth();
-  const { alerts } = useAlerts();
-  const { radius } = useGeofenceSettings();
+  const { radiusM, enabled, center: savedCenter } = useFarmGeofence();
   const navigate = useNavigate();
 
   const [selectedGoatId, setSelectedGoatId] = useState<string>('all');
 
   const located = useMemo(() => goats.filter((g) => g.lat != null && g.lng != null), [goats]);
-  const center = useMemo(() => farmCenterOf(goats), [goats]);
+  const center = useMemo(() => savedCenter ?? farmCenterOf(goats), [savedCenter, goats]);
 
   const activeGoat =
     selectedGoatId !== 'all' ? located.find((g) => g.goatId === selectedGoatId) : located[0];
@@ -40,36 +32,14 @@ export default function GPSTracking() {
   );
 
   const breachCount = useMemo(() => {
-    if (!center) return 0;
-    return located.filter((g) => geofenceStatus(g, center, radius).breached).length;
-  }, [located, center, radius]);
+    if (!center || !enabled) return 0;
+    return located.filter((g) => geofenceStatus(g, center, radiusM).breached).length;
+  }, [located, center, radiusM, enabled]);
 
   const insideCount = located.length - breachCount;
 
-  /* Create one geofence breach alert per goat (deduped per session + existing alerts). */
-  const createdRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!user || !center) return;
-    const existingBreaches = new Set(
-      alerts.filter((a) => a.type === 'geofenceBreach').map((a) => a.goatId).filter(Boolean),
-    );
-    located.forEach((g) => {
-      const status = geofenceStatus(g, center, radius);
-      if (!status.breached) return;
-      if (existingBreaches.has(g.goatId) || createdRef.current.has(g.goatId)) return;
-      createdRef.current.add(g.goatId);
-      createAlert({
-        type: 'geofenceBreach',
-        severity: 'critical',
-        message: `${g.goatId} left the ${radius} m safe zone (${status.distanceM} m from the farm).`,
-        goatId: g.goatId,
-        deviceId: g.deviceId,
-        farmUid: user.uid,
-      }).catch(() => {});
-    });
-  }, [located, center, radius, user, alerts]);
-
-  const activeStatus = activeGoat && center ? geofenceStatus(activeGoat, center, radius) : null;
+  const activeStatus =
+    activeGoat && center && enabled ? geofenceStatus(activeGoat, center, radiusM) : null;
 
   return (
     <div className="space-y-6">
@@ -87,7 +57,7 @@ export default function GPSTracking() {
         <div className="flex flex-wrap items-center gap-2">
           {center && (
             <span className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-xs font-bold text-ink shadow-soft dark:border-white/10 dark:bg-dark-card dark:text-white">
-              Safe zone: {radius} m ·{' '}
+              Safe zone: {radiusM} m{enabled ? ' · server-enforced' : ''} ·{' '}
               <span className="text-emerald-500">{insideCount} inside</span>
               {' · '}
               <span className={breachCount > 0 ? 'text-rose-500' : 'text-muted'}>
@@ -130,7 +100,7 @@ export default function GPSTracking() {
               selectedGoatId={selectedGoatId}
               onSelect={(goatId) => setSelectedGoatId(goatId)}
               center={center}
-              radiusMeters={radius}
+              radiusMeters={radiusM}
               trailPoints={trailPoints}
             />
           </div>
@@ -199,9 +169,13 @@ export default function GPSTracking() {
                     </div>
                   ) : (
                     <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 font-semibold flex items-center gap-2">
-                      <FiCheckCircle /> Inside Safe Zone ({radius} m)
+                      <FiCheckCircle /> Inside Safe Zone ({radiusM} m)
                     </div>
                   )
+                ) : center ? (
+                  <div className="rounded-2xl bg-surface-light p-3 text-muted dark:bg-dark-surface dark:text-dark-muted font-semibold flex items-center gap-2">
+                    <FiMapPin /> Geofence is off — enable it in Settings to monitor the safe zone
+                  </div>
                 ) : (
                   <div className="rounded-2xl bg-surface-light p-3 text-muted dark:bg-dark-surface dark:text-dark-muted font-semibold flex items-center gap-2">
                     <FiMapPin /> Geofence unavailable — no GPS fix yet

@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { fetchAllGoats } from '@/services/goats';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '@/services/firebase';
 import { useAuth } from './useAuth';
 import { Goat } from '@/types/goat';
 
 /**
- * One-shot fetch of the entire herd (no realtime, no pagination).
- * Only for pages that genuinely need the full dataset, like Analytics
- * and Reports. For browse lists, prefer the paginated useGoats hook.
+ * Live snapshot of the entire herd (realtime, no pagination). Updates the
+ * dashboard the moment a collar uploads telemetry or the offline monitor
+ * flags a goat. Only for pages that genuinely need the full dataset, like
+ * Overview, Analytics and Reports. For browse lists, prefer the paginated
+ * useGoats hook.
  */
 export function useAllGoats() {
   const { user } = useAuth();
@@ -21,25 +24,22 @@ export function useAllGoats() {
       return;
     }
 
-    let cancelled = false;
     setLoading(true);
-    fetchAllGoats(user.uid)
-      .then((list) => {
-        if (!cancelled) {
-          setGoats(list);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load goats.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const q = query(collection(db, 'goats'), where('farmUid', '==', user.uid));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setGoats(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Goat));
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      }
+    );
 
-    return () => {
-      cancelled = true;
-    };
+    return unsubscribe;
   }, [user]);
 
   return { goats, loading, error };

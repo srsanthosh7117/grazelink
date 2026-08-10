@@ -3,7 +3,11 @@ import { adminDb } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import { validatePayload, TelemetryPayload } from '../middleware/validatePayload.js';
 import { validateDevice } from '../middleware/validateDevice.js';
-import { evaluateTelemetryAlerts } from '../services/alertService.js';
+import {
+  evaluateTelemetryAlerts,
+  evaluateGeofenceBreach,
+  clearOpenAlerts,
+} from '../services/alertService.js';
 
 const router = Router();
 
@@ -107,6 +111,7 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         status: 'Online',
         gpsStatus: 'Active',
         lastSeen: new Date().toLocaleTimeString(),
+        lastReportAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
@@ -176,6 +181,20 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
 
     // 4. Evaluate automated alerts
     await evaluateTelemetryAlerts(payload, farmUid, { temperature, collarId });
+
+    // 5. Server-side geofence enforcement (raises/resolves geofenceBreach alerts)
+    if (payload.goatId && typeof payload.latitude === 'number' && typeof payload.longitude === 'number') {
+      await evaluateGeofenceBreach({
+        farmUid,
+        goatId: payload.goatId,
+        deviceId: payload.deviceId,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+      });
+    }
+
+    // 6. The collar just reported, so any open offline alert is now resolved
+    await clearOpenAlerts(farmUid, payload.goatId, 'deviceOffline');
 
     return res.status(200).json({
       success: true,

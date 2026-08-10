@@ -21,7 +21,8 @@ import { updatePassword, updateProfile, reauthenticateWithCredential, EmailAuthP
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
-import { useGeofenceSettings } from '@/hooks/useGeofence';
+import { farmCenterOf } from '@/hooks/useGeofence';
+import { useFarmGeofence } from '@/hooks/useFarmGeofence';
 import { useFarmProfile } from '@/hooks/useFarmProfile';
 import { useAllGoats } from '@/hooks/useAllGoats';
 import { updateFarmProfile } from '@/services/auth';
@@ -56,9 +57,57 @@ export default function Settings() {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
-  const { radius: geofenceRadius, setRadius: setGeofenceRadius } = useGeofenceSettings();
   const { profile, loading: profileLoading } = useFarmProfile();
   const { goats, loading: goatsLoading } = useAllGoats();
+
+  // Geofence — server-backed settings (cloud copy + live sync)
+  const {
+    enabled: geofenceEnabled,
+    radiusM: geofenceRadiusM,
+    center: geofenceCenter,
+    loading: geofenceLoading,
+    saveFarmGeofence,
+  } = useFarmGeofence();
+  const [geofenceDraft, setGeofenceDraft] = useState<{
+    enabled: boolean;
+    radiusM: number;
+    centerLat: string;
+    centerLng: string;
+  }>({ enabled: false, radiusM: 500, centerLat: '', centerLng: '' });
+  const [geofenceSaving, setGeofenceSaving] = useState(false);
+  const [geofenceDirty, setGeofenceDirty] = useState(false);
+
+  useEffect(() => {
+    if (geofenceLoading) return;
+    setGeofenceDraft({
+      enabled: geofenceEnabled,
+      radiusM: geofenceRadiusM,
+      centerLat: geofenceCenter ? String(geofenceCenter.lat) : '',
+      centerLng: geofenceCenter ? String(geofenceCenter.lng) : '',
+    });
+  }, [geofenceLoading, geofenceEnabled, geofenceRadiusM, geofenceCenter]);
+
+  const handleSaveGeofence = async () => {
+    if (!user) return;
+    setGeofenceSaving(true);
+    try {
+      const centerLat = Number(geofenceDraft.centerLat);
+      const centerLng = Number(geofenceDraft.centerLng);
+      const hasCenter =
+        Number.isFinite(centerLat) && Number.isFinite(centerLng) && (centerLat !== 0 || centerLng !== 0);
+      await saveFarmGeofence({
+        enabled: geofenceDraft.enabled,
+        radiusM: geofenceDraft.radiusM,
+        center: hasCenter ? { lat: centerLat, lng: centerLng } : null,
+      });
+      setGeofenceDirty(false);
+      showToast('success', 'Geofence saved — the server now enforces this safe zone.');
+    } catch {
+      showToast('error', 'Could not save geofence settings. Please try again.');
+    } finally {
+      setGeofenceSaving(false);
+    }
+  };
 
   const [batteryThreshold, setBatteryThreshold] = usePreference('gl_battery_threshold', 20);
   const [temperatureThreshold, setTemperatureThreshold] = usePreference('gl_temp_threshold', 40);
@@ -343,34 +392,120 @@ export default function Settings() {
           <FiShield className="text-base text-primary" /> Geofencing
         </h2>
         <div className={sectionCard}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-4">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/10 text-xl text-blue-500">
               <FiMapPin />
             </div>
-            <div>
-              <p className="font-bold text-ink dark:text-white">Safe Zone Radius</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-ink dark:text-white">Safe Zone &amp; Breach Alerts</p>
               <p className="text-xs text-muted dark:text-dark-muted">
-                Used by the GPS map to raise breach alerts when collars leave the boundary
+                Saved to the cloud so the ingestion server raises breach alerts on every collar report —
+                even when no dashboard is open.
               </p>
             </div>
           </div>
+
+          <label className="mt-4 flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              checked={geofenceDraft.enabled}
+              onChange={(e) => {
+                setGeofenceDraft((d) => ({ ...d, enabled: e.target.checked }));
+                setGeofenceDirty(true);
+              }}
+              className="h-4 w-4 accent-primary"
+            />
+            <span className="text-sm font-semibold text-ink dark:text-white">Enable geofence enforcement</span>
+          </label>
+
           <div className="mt-4 flex items-center gap-4">
             <input
               type="range"
               min="100"
               max="2000"
               step="50"
-              value={geofenceRadius}
-              onChange={(e) => setGeofenceRadius(Number(e.target.value))}
+              value={geofenceDraft.radiusM}
+              onChange={(e) => {
+                setGeofenceDraft((d) => ({ ...d, radiusM: Number(e.target.value) }));
+                setGeofenceDirty(true);
+              }}
               className="w-full accent-primary"
             />
             <span className="shrink-0 font-mono text-sm font-bold text-ink dark:text-white">
-              {geofenceRadius} m
+              {geofenceDraft.radiusM} m
             </span>
           </div>
           <div className="mt-2 flex justify-between text-[10px] font-medium text-muted dark:text-dark-muted">
             <span>100 m</span>
             <span>2000 m</span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-muted dark:text-dark-muted">
+                Zone Centre Latitude
+              </label>
+              <input
+                value={geofenceDraft.centerLat}
+                onChange={(e) => {
+                  setGeofenceDraft((d) => ({ ...d, centerLat: e.target.value }));
+                  setGeofenceDirty(true);
+                }}
+                placeholder="e.g. -25.7461"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-muted dark:text-dark-muted">
+                Zone Centre Longitude
+              </label>
+              <input
+                value={geofenceDraft.centerLng}
+                onChange={(e) => {
+                  setGeofenceDraft((d) => ({ ...d, centerLng: e.target.value }));
+                  setGeofenceDirty(true);
+                }}
+                placeholder="e.g. 28.1881"
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const herdCenter = farmCenterOf(goats);
+              if (herdCenter) {
+                setGeofenceDraft((d) => ({
+                  ...d,
+                  centerLat: String(herdCenter.lat),
+                  centerLng: String(herdCenter.lng),
+                }));
+                setGeofenceDirty(true);
+              }
+            }}
+            disabled={goatsLoading || goats.length === 0}
+            className="mt-3 text-xs font-semibold text-primary transition-colors hover:text-primary-dark disabled:opacity-50 dark:text-primary-light"
+          >
+            Use current herd centre
+          </button>
+
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <p className="text-xs text-muted dark:text-dark-muted">
+              {geofenceDirty
+                ? 'You have unsaved geofence changes.'
+                : geofenceEnabled
+                  ? 'Geofence is active — the server monitors every collar report.'
+                  : 'Geofence is off. Enable it to raise breach alerts from the server.'}
+            </p>
+            <button
+              onClick={handleSaveGeofence}
+              disabled={geofenceSaving || !geofenceDirty}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-card transition-all hover:bg-primary-dark disabled:opacity-50"
+            >
+              <FiSave className="text-sm" />
+              {geofenceSaving ? 'Saving...' : 'Save Geofence'}
+            </button>
           </div>
         </div>
       </div>
