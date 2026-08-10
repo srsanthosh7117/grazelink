@@ -65,11 +65,6 @@ export default function Hero() {
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-muted dark:text-dark-muted md:text-lg">
-            GPS collars that show you where your herd is, what's off, and what needs you —
-            in real time.
-          </p>
-
           <div className="mt-9 flex flex-wrap gap-4">
             <button
               onClick={() => navigate(user ? '/dashboard' : '/register')}
