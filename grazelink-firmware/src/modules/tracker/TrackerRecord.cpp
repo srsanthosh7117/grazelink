@@ -8,7 +8,7 @@ String TrackerRecord::ToJson() const {
   JsonDocument doc;
   doc["deviceId"] = device_id;
   doc["apiKey"] = api_key;
-  doc["goatId"] = goat_id;
+  doc["livestockId"] = livestock_id;
   doc["latitude"] = latitude;
   doc["longitude"] = longitude;
   doc["gpsAccuracy"] = gps_accuracy;
@@ -29,7 +29,7 @@ bool TrackerRecord::FromJson(const String& json, TrackerRecord* out) {
 
   out->device_id = doc["deviceId"] | "";
   out->api_key = doc["apiKey"] | "";
-  out->goat_id = doc["goatId"] | "";
+  out->livestock_id = doc["livestockId"] | "";
   out->latitude = doc["latitude"] | 0.0;
   out->longitude = doc["longitude"] | 0.0;
   out->gps_accuracy = doc["gpsAccuracy"] | 0.0f;

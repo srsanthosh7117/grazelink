@@ -11,7 +11,7 @@ namespace GrazeLink {
 struct TrackerRecord {
   String device_id;
   String api_key;
-  String goat_id;
+  String livestock_id;
   double latitude = 0.0;
   double longitude = 0.0;
   float gps_accuracy = 0.0f;

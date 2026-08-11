@@ -35,14 +35,15 @@ constexpr bool kUseTls = true;
 
 constexpr const char* kDeviceId = "GZL-001";
 constexpr const char* kApiKey = "gzl_24583dc21f179fa168734477ae34f2a16b521f05d40d1eaf";
-constexpr const char* kGoatId = "GT-0001";
+constexpr const char* kLivestockId = "GT-0001";
 
 // -----------------------------------------------------------------------
 // Timing
 // -----------------------------------------------------------------------
 constexpr uint32_t kGpsFixTimeoutMs = 60000;  // STATE 4: max 1 minute wait for a fix
-constexpr uint32_t kHttpTimeoutMs = 20000;  // raised from 10s — farm Wi-Fi/mobile backhaul can be slow;
-                                             // increase further (e.g. 30000) if uploads keep timing out
+constexpr uint32_t kHttpTimeoutMs = 60000;  // must exceed Render's ~50s free-instance
+                                            // cold-start, otherwise the first upload after
+                                            // idle sleep is mistaken for a failed one
 constexpr uint64_t kSleepEmptyStorageUs = 30ULL * 60ULL * 1000000ULL;  // 30 min
 constexpr uint64_t kSleepGrazingUs = 20ULL * 60ULL * 1000000ULL;       // 20 min
 

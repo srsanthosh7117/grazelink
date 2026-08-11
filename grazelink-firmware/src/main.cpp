@@ -71,7 +71,7 @@ SleepManager sleep_manager;
 
 // Tracks whether GPS_TRACKING ran this wake cycle — this, not whether
 // the queue happens to be empty afterward, is what decides the deep
-// sleep duration (STATE 7): a goat that's out grazing should be checked
+// sleep duration (STATE 7): an animal that's out grazing should be checked
 // again in 20 minutes even if the record it just generated uploaded
 // successfully and left storage empty.
 bool grazed_this_cycle = false;
@@ -108,7 +108,7 @@ bool RunCheckWifi() {
 /// STATE: REGISTER — one-time GPS confirmation handshake. The collar grabs
 /// a fix and POSTs /api/device/location; only a real FIX flips the device
 /// to registrationStatus: 'gps_confirmed' on the server, so a fresh collar
-/// cannot be linked to a goat until the prototype has proven its position.
+/// cannot be linked to livestock until the prototype has proven its position.
 void RunRegistration() {
   Logger::Info(kTag, "STATE: REGISTER (GPS handshake)");
   gps.Begin();
@@ -118,7 +118,7 @@ void RunRegistration() {
   TrackerRecord record;
   record.device_id = Config::kDeviceId;
   record.api_key = Config::kApiKey;
-  record.goat_id = Config::kGoatId;
+  record.livestock_id = Config::kLivestockId;
   record.battery_percent = battery.ReadPercent();
   record.movement = accelerometer.DetectMovement();
 
@@ -170,7 +170,7 @@ void RunGrazingMode() {
   TrackerRecord record;
   record.device_id = Config::kDeviceId;
   record.api_key = Config::kApiKey;
-  record.goat_id = Config::kGoatId;
+  record.livestock_id = Config::kLivestockId;
   record.battery_percent = battery.ReadPercent();
   record.movement = moved;
 
