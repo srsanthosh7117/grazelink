@@ -13,7 +13,9 @@ const char* ssid = "FARM_WIFI_SSID";
 const char* password = "FARM_WIFI_PASSWORD";
 
 // Node.js Backend API Configuration
-const char* serverUrl = "http://192.168.1.100:5000/api/device/upload";
+// Live Render host. NOTE: if the free instance has spun down from
+// inactivity, the first upload can take 50+ seconds while it cold-starts.
+const char* serverUrl = "https://grazelink-api.onrender.com/api/device/upload";
 // Paste the key shown on this collar's card on the dashboard's Devices
 // page (Register ESP32 Device -> reveal/copy API Key). Each collar has
 // its own key — do not reuse one key across multiple devices.

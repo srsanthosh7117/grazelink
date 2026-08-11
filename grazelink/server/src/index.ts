@@ -11,6 +11,10 @@ import { startOfflineMonitor } from './services/offlineMonitor.js';
 dotenv.config();
 
 const app = express();
+// Render (and most hosts) sit the app behind a reverse proxy that adds
+// X-Forwarded-For; without this, express-rate-limit throws trying to
+// identify the real client IP.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 // Security & Logging Middlewares
