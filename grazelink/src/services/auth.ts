@@ -4,13 +4,9 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
   sendPasswordResetEmail,
-  sendEmailVerification,
-  applyActionCode,
-  reload,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
-  type User,
 } from 'firebase/auth';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -88,57 +84,6 @@ export async function resetPassword(email: string) {
     15000,
     'Sending the reset email is taking too long. Please check your connection and try again.'
   );
-}
-
-/** Sends a Firebase email-verification link to the signed-in user.
- *  handleCodeInApp:true makes the link point straight at the deployed app
- *  (/verify-email/link) instead of the Firebase-hosted action page
- *  (firebaseapp.com/__/auth/action), which some ISPs/networks reset. The
- *  code is applied client-side by VerifyEmailLink. */
-export async function sendVerificationEmail(user: User) {
-  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-  await withTimeout(
-    sendEmailVerification(user, { url: `${appUrl}/verify-email/link`, handleCodeInApp: true }),
-    15000,
-    'Sending the verification email is taking too long. Please check your connection and try again.'
-  );
-}
-
-/** Applies a verification code from the emailed link (handleCodeInApp:true).
- *  Marks the account verified in Firebase, then refreshes the local session
- *  so emailVerified is up to date. */
-export async function verifyEmailWithCode(oobCode: string): Promise<void> {
-  await withTimeout(
-    applyActionCode(auth, oobCode),
-    15000,
-    'Verifying your email is taking too long. Please check your connection and try again.'
-  );
-  const current = auth.currentUser;
-  if (current) {
-    await withTimeout(
-      reload(current),
-      15000,
-      'Could not refresh your session. Please check your connection and try again.'
-    );
-  }
-}
-
-/**
- * Reloads the current Firebase user so `emailVerified` reflects any
- * verification that happened in another tab/device, and returns the
- * refreshed user.
- */
-export async function refreshAuthUser(): Promise<User | null> {
-  const current = auth.currentUser;
-  if (current) {
-    await withTimeout(
-      reload(current),
-      15000,
-      'Could not refresh your session. Please check your connection and try again.'
-    );
-    return current;
-  }
-  return null;
 }
 
 export async function logoutUser() {

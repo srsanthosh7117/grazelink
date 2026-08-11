@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import logo from '@/assets/images/logo.jpeg';
-import { registerUser, sendVerificationEmail } from '@/services/auth';
+import { registerUser } from '@/services/auth';
 import { getAuthErrorMessage } from '@/utils/authErrors';
 import { useToast } from '@/context/ToastContext';
 
@@ -51,7 +51,7 @@ export default function Register() {
     setServerError('');
     setSubmitting(true);
     try {
-      const user = await registerUser({
+      await registerUser({
         username: data.username,
         fullName: data.fullName,
         email: data.email,
@@ -66,11 +66,8 @@ export default function Register() {
         village: data.village,
         pincode: data.pincode,
       });
-      // Security: require the email to be verified before the account can
-      // reach any protected page. The account is unusable until verified.
-      await sendVerificationEmail(user);
-      showToast('success', 'Account created! Please verify your email to continue.');
-      navigate('/verify-email', { replace: true });
+      showToast('success', "Account created successfully! Let's register your first collar and livestock.");
+      navigate('/register-device', { replace: true });
     } catch (err) {
       const message = getAuthErrorMessage(err);
       setServerError(message);

@@ -19,9 +19,6 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'auth/wrong-password': 'Incorrect password.',
   'auth/too-many-requests': 'Too many attempts — please wait a moment and try again.',
   'auth/user-disabled': 'This account has been disabled.',
-  'auth/invalid-action-code': 'This verification link is invalid or has already been used. Request a new one.',
-  'auth/expired-action-code': 'This verification link has expired. Request a new one.',
-  'auth/missing-action-code': 'This link is missing its verification code. Use the link from the email.',
 };
 
 export function getAuthErrorMessage(error: unknown): string {

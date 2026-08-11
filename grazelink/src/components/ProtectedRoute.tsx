@@ -17,11 +17,5 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  // Security: unverified accounts must confirm their email before touching
-  // any protected page (dashboard, device registration, etc.).
-  if (!user.emailVerified) {
-    return <Navigate to="/verify-email" replace />;
-  }
-
   return <>{children}</>;
 }
