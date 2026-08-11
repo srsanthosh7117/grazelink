@@ -89,10 +89,15 @@ export async function resetPassword(email: string) {
   );
 }
 
-/** Sends a Firebase email-verification link to the signed-in user. */
+/** Sends a Firebase email-verification link to the signed-in user.
+ *  The continue URL is the live app (VITE_APP_URL, falling back to the
+ *  current origin) so the email's button lands on the deployed site.
+ *  handleCodeInApp:false keeps Firebase's hosted action handler in charge
+ *  of marking the email verified — no extra app routing needed. */
 export async function sendVerificationEmail(user: User) {
+  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
   await withTimeout(
-    sendEmailVerification(user),
+    sendEmailVerification(user, { url: appUrl, handleCodeInApp: false }),
     15000,
     'Sending the verification email is taking too long. Please check your connection and try again.'
   );
