@@ -11,9 +11,14 @@ export interface Device {
   shedName?: string;
 
   /** Per-device shared secret the collar firmware sends as the x-api-key
-   *  header on every telemetry upload. Generated client-side on
-   *  registration; only ever readable by the owning farm. */
-  apiKey: string;
+   *  header on every telemetry upload. Present only on devices registered
+   *  before key-hashing shipped (see apiKeyHash); the backend verifies the
+   *  presented key against either field. */
+  apiKey?: string;
+
+  /** SHA-256 digest of the device API key. New registrations and rotations
+   *  store only this digest, never the plaintext key. */
+  apiKeyHash?: string;
 
   /** GPS registration handshake state. A freshly registered collar starts
    *  'pending' and is only 'gps_confirmed' once the collar POSTed its

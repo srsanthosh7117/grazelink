@@ -18,6 +18,7 @@ export default function Devices() {
   const [saving, setSaving] = useState(false);
   const [revealedKeys, setRevealedKeys] = useState<Record<string, boolean>>({});
   const [rotating, setRotating] = useState<string | null>(null);
+  const [issuedKeys, setIssuedKeys] = useState<Record<string, string>>({});
 
   const toggleReveal = (id: string) => setRevealedKeys((prev) => ({ ...prev, [id]: !prev[id] }));
 
@@ -35,6 +36,7 @@ export default function Devices() {
     setRotating(d.id);
     try {
       const newKey = await regenerateDeviceApiKey(d.id);
+      setIssuedKeys((prev) => ({ ...prev, [d.id]: newKey }));
       setRevealedKeys((prev) => ({ ...prev, [d.id]: true }));
       showToast('success', `New API key issued for ${d.deviceId}.`);
       await copyKey(newKey, d.deviceId);
@@ -207,20 +209,24 @@ export default function Devices() {
                     <FiKey className="text-primary" /> API Key
                   </span>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => toggleReveal(d.id)}
-                      aria-label={revealedKeys[d.id] ? 'Hide API key' : 'Reveal API key'}
-                      className="text-muted hover:text-primary dark:text-dark-muted"
-                    >
-                      {revealedKeys[d.id] ? <FiEyeOff /> : <FiEye />}
-                    </button>
-                    <button
-                      onClick={() => copyKey(d.apiKey, d.deviceId)}
-                      aria-label="Copy API key"
-                      className="text-muted hover:text-primary dark:text-dark-muted"
-                    >
-                      <FiCopy />
-                    </button>
+                    {issuedKeys[d.id] ?? d.apiKey ? (
+                      <>
+                        <button
+                          onClick={() => toggleReveal(d.id)}
+                          aria-label={revealedKeys[d.id] ? 'Hide API key' : 'Reveal API key'}
+                          className="text-muted hover:text-primary dark:text-dark-muted"
+                        >
+                          {revealedKeys[d.id] ? <FiEyeOff /> : <FiEye />}
+                        </button>
+                        <button
+                          onClick={() => copyKey(issuedKeys[d.id] ?? d.apiKey, d.deviceId)}
+                          aria-label="Copy API key"
+                          className="text-muted hover:text-primary dark:text-dark-muted"
+                        >
+                          <FiCopy />
+                        </button>
+                      </>
+                    ) : null}
                     <button
                       onClick={() => handleRegenerate(d)}
                       disabled={rotating === d.id}
@@ -232,10 +238,18 @@ export default function Devices() {
                   </div>
                 </div>
                 <p className="mt-1.5 break-all font-mono text-[11px] text-ink dark:text-white">
-                  {revealedKeys[d.id] ? d.apiKey : '•'.repeat(24)}
+                  {revealedKeys[d.id] && (issuedKeys[d.id] ?? d.apiKey)
+                    ? (issuedKeys[d.id] ?? d.apiKey)
+                    : '•'.repeat(24)}
                 </p>
                 <p className="mt-1 text-[10px] text-muted dark:text-dark-muted">
-                  Flash this into the collar's firmware config as the <code>x-api-key</code> header.
+                  {issuedKeys[d.id] ?? d.apiKey ? (
+                    <>
+                      Flash this into the collar's firmware config as the <code>x-api-key</code> header.
+                    </>
+                  ) : (
+                    'Stored as a SHA-256 hash — rotate to see a new key and reflash the collar.'
+                  )}
                 </p>
               </div>
 

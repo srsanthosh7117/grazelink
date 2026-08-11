@@ -10,6 +10,7 @@ import {
 import { db } from './firebase';
 import { Device, DevicePayload } from '@/types/device';
 import { withTimeout } from '@/utils/withTimeout';
+import { sha256Hex } from '@/utils/crypto';
 
 const TIMEOUT_MESSAGE =
   'This is taking too long to reach the database. Please check your internet connection and try again.';
@@ -31,15 +32,17 @@ function generateApiKey(): string {
 }
 
 /** Registers a new smart collar device for a farm and issues it a fresh API key.
- *  The device starts in `registrationStatus: 'pending'` — it becomes
- *  linkable only after the collar reports its first GPS fix. */
+ *  The key is returned once so it can be flashed into the collar, but only its
+ *  SHA-256 digest is stored — the plaintext is never persisted. The device
+ *  starts in `registrationStatus: 'pending'` — it becomes linkable only after
+ *  the collar reports its first GPS fix. */
 export async function registerDevice(farmUid: string, payload: DevicePayload) {
   const apiKey = generateApiKey();
   const docRef = await withTimeout(
     addDoc(devicesRef, {
       ...payload,
       farmUid,
-      apiKey,
+      apiKeyHash: await sha256Hex(apiKey),
       registrationStatus: 'pending',
       initialLatitude: null,
       initialLongitude: null,
@@ -69,11 +72,12 @@ export async function updateDevice(
 }
 
 /** Rotates a device's API key — use if a collar's key may have leaked.
- *  The old key stops working the moment this write lands. */
+ *  The old key stops working the moment this write lands. As with
+ *  registration, the new key is returned once and only its digest is stored. */
 export async function regenerateDeviceApiKey(deviceDocId: string) {
   const apiKey = generateApiKey();
   const ref = doc(db, 'devices', deviceDocId);
-  await withTimeout(updateDoc(ref, { apiKey }), 15000, TIMEOUT_MESSAGE);
+  await withTimeout(updateDoc(ref, { apiKeyHash: await sha256Hex(apiKey) }), 15000, TIMEOUT_MESSAGE);
   return apiKey;
 }
 

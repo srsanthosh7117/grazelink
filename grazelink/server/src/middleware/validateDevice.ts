@@ -1,5 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHash } from 'node:crypto';
 import { adminDb } from '../config/firebase.js';
+
+/** SHA-256 hex digest. Device keys are stored at rest only as this digest
+ *  (the frontend writes `apiKeyHash` instead of the plaintext key). */
+function sha256Hex(input: string): string {
+  return createHash('sha256').update(input, 'utf8').digest('hex');
+}
 
 // Legacy shared secret — kept only as a fallback so existing collars
 // flashed before per-device keys existed don't break immediately.
@@ -53,7 +60,17 @@ export async function validateDevice(req: Request, res: Response, next: NextFunc
       const device = snap.docs[0];
       const data = device.data();
 
-      if (data.apiKey && apiKey === data.apiKey) {
+      // Prefer the at-rest digest (`apiKeyHash`); fall back to the legacy
+      // plaintext field for docs written before hashing shipped.
+      const presentedHash = sha256Hex(apiKey);
+      let matches = false;
+      if (data.apiKeyHash) {
+        matches = presentedHash === data.apiKeyHash;
+      } else if (data.apiKey) {
+        matches = apiKey === data.apiKey;
+      }
+
+      if (matches) {
         req.device = { id: device.id, farmUid: data.farmUid, deviceId };
         return next();
       }
