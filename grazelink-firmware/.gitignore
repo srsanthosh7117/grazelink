@@ -3,3 +3,11 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# Secrets — never commit
+.env
+.env.local
+.env.*
+serviceAccountKey.json
+service-account*.json
+firebase-adminsdk*.json

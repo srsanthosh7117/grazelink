@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 const Home = lazy(() => import('@/pages/Home/Home'));
 const Login = lazy(() => import('@/pages/Login/Login'));
 const Register = lazy(() => import('@/pages/Register/Register'));
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmail/VerifyEmail'));
 const DeviceRegistration = lazy(() => import('@/pages/DeviceRegistration/DeviceRegistration'));
 const Overview = lazy(() => import('@/pages/Dashboard/Overview'));
 const Livestock = lazy(() => import('@/pages/Dashboard/Livestock'));
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route
           path="/register-device"
           element={

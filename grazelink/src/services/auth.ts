@@ -4,9 +4,12 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
   sendPasswordResetEmail,
+  sendEmailVerification,
+  reload,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
+  type User,
 } from 'firebase/auth';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -82,6 +85,33 @@ export async function resetPassword(email: string) {
     15000,
     'Sending the reset email is taking too long. Please check your connection and try again.'
   );
+}
+
+/** Sends a Firebase email-verification link to the signed-in user. */
+export async function sendVerificationEmail(user: User) {
+  await withTimeout(
+    sendEmailVerification(user),
+    15000,
+    'Sending the verification email is taking too long. Please check your connection and try again.'
+  );
+}
+
+/**
+ * Reloads the current Firebase user so `emailVerified` reflects any
+ * verification that happened in another tab/device, and returns the
+ * refreshed user.
+ */
+export async function refreshAuthUser(): Promise<User | null> {
+  const current = auth.currentUser;
+  if (current) {
+    await withTimeout(
+      reload(current),
+      15000,
+      'Could not refresh your session. Please check your connection and try again.'
+    );
+    return current;
+  }
+  return null;
 }
 
 export async function logoutUser() {

@@ -6,3 +6,11 @@ tsconfig.tsbuildinfo
 
 # Local archives / snapshots
 *.zip
+
+# Secrets — never commit
+.env
+.env.local
+.env.*
+serviceAccountKey.json
+service-account*.json
+firebase-adminsdk*.json
