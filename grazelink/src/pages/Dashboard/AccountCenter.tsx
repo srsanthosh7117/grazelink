@@ -120,6 +120,7 @@ export default function AccountCenter() {
     district: '',
     state: '',
     country: '',
+    pincode: '',
   });
 
   const handleLogout = async () => {
@@ -137,6 +138,7 @@ export default function AccountCenter() {
         district: profile.district ?? '',
         state: profile.state ?? '',
         country: profile.country ?? '',
+        pincode: profile.pincode ?? '',
       });
     } else {
       setDraft(profile[key] ?? '');
@@ -197,6 +199,7 @@ export default function AccountCenter() {
     profile?.district,
     profile?.state,
     profile?.country,
+    profile?.pincode,
   ]
     .filter(Boolean)
     .join(', ') || 'No address details configured.';
@@ -352,7 +355,7 @@ export default function AccountCenter() {
                       />
                     </div>
                     <div>
-                      <label className="text-muted dark:text-dark-muted">Village / Town</label>
+                      <label className="text-muted dark:text-dark-muted">City / Village</label>
                       <input
                         value={addressDraft.village}
                         onChange={(e) => setAddressDraft((d) => ({ ...d, village: e.target.value }))}
@@ -381,6 +384,18 @@ export default function AccountCenter() {
                         value={addressDraft.country}
                         onChange={(e) => setAddressDraft((d) => ({ ...d, country: e.target.value }))}
                         className={addressInputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-muted dark:text-dark-muted">Pincode</label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={addressDraft.pincode}
+                        onChange={(e) => setAddressDraft((d) => ({ ...d, pincode: e.target.value.replace(/\D/g, '') }))}
+                        className={addressInputClass}
+                        placeholder="6-digit pincode"
                       />
                     </div>
                     <div className="sm:col-span-2 mt-1 flex gap-2">

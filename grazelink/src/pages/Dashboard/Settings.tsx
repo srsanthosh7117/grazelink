@@ -123,6 +123,7 @@ export default function Settings() {
     state: '',
     district: '',
     village: '',
+    pincode: '',
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileError, setProfileError] = useState('');
@@ -155,6 +156,7 @@ export default function Settings() {
         state: profile.state,
         district: profile.district,
         village: profile.village,
+        pincode: profile.pincode ?? '',
       });
     }
   }, [profile]);
@@ -177,6 +179,7 @@ export default function Settings() {
         state: profileFields.state,
         district: profileFields.district,
         village: profileFields.village,
+        pincode: profileFields.pincode,
       });
       if (profileFields.fullName !== user.displayName) {
         await updateProfile(user, { displayName: profileFields.fullName });
@@ -609,12 +612,26 @@ export default function Settings() {
                 </div>
                 <div>
                   <label className="mb-1.5 text-xs font-semibold text-muted dark:text-dark-muted">
-                    Village
+                    City / Village
                   </label>
                   <input
                     value={profileFields.village}
                     onChange={(e) => setField('village')(e.target.value)}
                     className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 text-xs font-semibold text-muted dark:text-dark-muted">
+                    Pincode
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={profileFields.pincode}
+                    onChange={(e) => setField('pincode')(e.target.value.replace(/\D/g, ''))}
+                    className={inputCls}
+                    placeholder="6-digit pincode"
                   />
                 </div>
               </div>

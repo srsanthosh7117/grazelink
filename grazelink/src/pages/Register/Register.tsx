@@ -22,6 +22,7 @@ interface RegisterFormData {
   state: string;
   district: string;
   village: string;
+  pincode: string;
   terms: boolean;
 }
 
@@ -63,6 +64,7 @@ export default function Register() {
         state: data.state,
         district: data.district,
         village: data.village,
+        pincode: data.pincode,
       });
       // Security: require the email to be verified before the account can
       // reach any protected page. The account is unusable until verified.
@@ -178,19 +180,38 @@ export default function Register() {
 
           <div>
             <label className={labelClass}>Country</label>
-            <input {...register('country', { required: true })} className={inputClass} />
+            <input {...register('country', { required: true })} className={inputClass} placeholder="Enter your country" />
+            {errors.country && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
           <div>
             <label className={labelClass}>State</label>
-            <input {...register('state', { required: true })} className={inputClass} />
+            <input {...register('state', { required: true })} className={inputClass} placeholder="Enter your state" />
+            {errors.state && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
           <div>
             <label className={labelClass}>District</label>
-            <input {...register('district', { required: true })} className={inputClass} />
+            <input {...register('district', { required: true })} className={inputClass} placeholder="Enter your district" />
+            {errors.district && <p className="mt-1 text-xs text-rose-500">Required</p>}
           </div>
           <div>
-            <label className={labelClass}>Village</label>
-            <input {...register('village', { required: true })} className={inputClass} />
+            <label className={labelClass}>City / Village</label>
+            <input {...register('village', { required: true })} className={inputClass} placeholder="Enter your city or village" />
+            {errors.village && <p className="mt-1 text-xs text-rose-500">Required</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Pincode</label>
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={6}
+              {...register('pincode', {
+                required: 'Pincode is required',
+                pattern: { value: /^[0-9]{6}$/, message: 'Enter a valid 6-digit pincode' },
+              })}
+              className={inputClass}
+              placeholder="6-digit pincode"
+            />
+            {errors.pincode && <p className="mt-1 text-xs text-rose-500">{errors.pincode.message}</p>}
           </div>
 
           <div className="sm:col-span-2 flex items-start gap-2 text-xs text-muted dark:text-dark-muted">

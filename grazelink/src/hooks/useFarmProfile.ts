@@ -15,6 +15,7 @@ export interface FarmProfile {
   state: string;
   district: string;
   village: string;
+  pincode?: string;
   createdAt?: unknown;
 }
 

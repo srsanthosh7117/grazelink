@@ -28,6 +28,7 @@ export interface RegisterPayload {
   state: string;
   district: string;
   village: string;
+  pincode: string;
 }
 
 /** Creates a Firebase Auth user, then stores the farm profile in Firestore. */
@@ -57,6 +58,7 @@ export async function registerUser(payload: RegisterPayload) {
       state: payload.state,
       district: payload.district,
       village: payload.village,
+      pincode: payload.pincode,
       createdAt: serverTimestamp(),
     }),
     15000,
@@ -130,6 +132,7 @@ export interface UpdateFarmProfilePayload {
   state?: string;
   district?: string;
   village?: string;
+  pincode?: string;
 }
 
 /** Updates an existing farm profile doc (merge, so createdAt is preserved). */
