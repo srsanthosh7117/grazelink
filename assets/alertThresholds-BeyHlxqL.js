@@ -1,0 +1,1 @@
+const o="gl_battery_threshold",E="gl_temp_threshold";function n(T,t){try{const r=localStorage.getItem(T);if(r==null)return t;const e=JSON.parse(r);return typeof e!="number"||!Number.isFinite(e)?t:e}catch{return t}}function s(){return n(o,20)}function _(){return n(E,40)}export{_ as a,s as g};

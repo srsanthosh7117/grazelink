@@ -1,0 +1,1 @@
+const e={lowBattery:"Low Battery",deviceOffline:"Device Offline",noGps:"No GPS Signal",highTemperature:"High Temperature",vaccinationDue:"Vaccination Due",geofenceBreach:"Geofence Breach"},a={info:"text-blue-500 bg-blue-500/10",warning:"text-amber-500 bg-amber-500/10",critical:"text-red-500 bg-red-500/10"};export{a as A,e as a};
