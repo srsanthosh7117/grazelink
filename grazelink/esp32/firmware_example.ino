@@ -1,12 +1,14 @@
 /*
   GrazeLink — Commercial ESP32 WROOM Smart Livestock Collar Firmware Example
-  Board: ESP32 Dev Module
+  Board: ESP32-WROOM-32D-N4 WiFi+BLE DEVKIT (Arduino board: "ESP32 Dev Module")
   Libraries Required: TinyGPS++, ArduinoJson, HTTPClient, WiFi
 */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <TinyGPS++.h>
+#include <time.h>
 
 // WiFi Configuration
 const char* ssid = "FARM_WIFI_SSID";
@@ -26,8 +28,17 @@ const char* deviceId = "ESP32-001";
 const char* collarId = "CL-1042";
 const char* livestockId   = "GT-0001";
 
+// GPS Module (NEO-6M) on Serial2: RX = GPIO16, TX = GPIO17
+HardwareSerial gpsSerial(2);
+TinyGPSPlus gps;
+
+// Used only until a real GPS fix is available
+const float fallbackLatitude = 13.0827;
+const float fallbackLongitude = 80.2707;
+
 void setup() {
   Serial.begin(115200);
+  gpsSerial.begin(9600, SERIAL_8N1, 16, 17);
   delay(1000);
   Serial.println("GrazeLink ESP32 Collar Initializing...");
 
@@ -44,15 +55,37 @@ void setup() {
     Serial.println("\nWiFi Connected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+    configTime(0, 0, "pool.ntp.org", "time.google.com");
   } else {
     Serial.println("\nWiFi Unavailable — Storing Telemetry Locally in Flash");
   }
 }
 
+// ISO-8601 UTC timestamp from the NTP-synced clock.
+// Returns "" until the clock is synced so the server assigns the time.
+String getUtcTimestamp() {
+  time_t now = time(nullptr);
+  if (now < 100000) return "";
+  struct tm tmv;
+  gmtime_r(&now, &tmv);
+  char buf[32];
+  strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tmv);
+  return String(buf);
+}
+
 void loop() {
-  // Read Telemetry Data
-  float latitude = 13.0827;     // Simulated GPS latitude (Replace with TinyGPS++ output)
-  float longitude = 80.2707;    // Simulated GPS longitude (Replace with TinyGPS++ output)
+  // Drain the GPS module for up to 5s to try to acquire a fix
+  unsigned long gpsListenStart = millis();
+  while (millis() - gpsListenStart < 5000) {
+    while (gpsSerial.available()) {
+      gps.encode(gpsSerial.read());
+    }
+    delay(2);
+  }
+
+  // Use live GPS coords when a fix exists, otherwise the fallback
+  float latitude = gps.location.isValid() ? gps.location.lat() : fallbackLatitude;
+  float longitude = gps.location.isValid() ? gps.location.lng() : fallbackLongitude;
   int battery = 92;             // Battery percentage
   float temperature = 38.5;     // Body temperature °C
   int signalStrength = WiFi.RSSI();
@@ -82,7 +115,7 @@ void sendTelemetry(float lat, float lng, int bat, float temp, int rssi) {
   doc["battery"]        = bat;
   doc["temperature"]    = temp;
   doc["signalStrength"] = rssi;
-  doc["timestamp"]      = "2026-07-30T22:30:00Z";
+  doc["timestamp"]      = getUtcTimestamp();
 
   String jsonPayload;
   serializeJson(doc, jsonPayload);
