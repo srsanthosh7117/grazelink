@@ -7,9 +7,13 @@ import { ToastProvider } from '@/context/ToastContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import './index.css';
 
+// Deployed at a sub-path (e.g. GitHub Pages under /grazelink/), set
+// VITE_ROUTER_BASENAME to that prefix. Defaults to the site root.
+const BASENAME = import.meta.env.VITE_ROUTER_BASENAME || '/';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={BASENAME}>
       <ThemeProvider>
         <AuthProvider>
           <ToastProvider>

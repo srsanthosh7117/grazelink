@@ -1,6 +1,6 @@
 module.exports = {
   root: true,
-  env: { browser: true, es2021: true },
+  env: { browser: true, es2021: true, node: true },
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -13,7 +13,7 @@ module.exports = {
     ecmaFeatures: { jsx: true },
   },
   plugins: ['@typescript-eslint', 'react-refresh'],
-  ignorePatterns: ['dist/**', 'node_modules/**', 'vite.config.ts'],
+  ignorePatterns: ['dist/**', 'server/dist/**', 'node_modules/**', 'vite.config.ts'],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
   },
