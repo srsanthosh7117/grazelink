@@ -15,7 +15,10 @@ export interface TelemetryPayload {
   speed?: number;
   apiKey?: string;
   gpsStatus?: string;
+  /** Receiver's own horizontal accuracy estimate in metres (UBX-NAV-PVT hAcc). */
   gpsAccuracy?: number;
+  /** Satellites used in the solution. */
+  satellites?: number;
   movement?: boolean;
 }
 

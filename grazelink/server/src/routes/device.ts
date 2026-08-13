@@ -217,19 +217,48 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     // a fabricated 0,0 waypoint in the animal's trail and would corrupt the
     // distance-travelled figure the analytics page derives from it.
     if (positioned) {
-      await adminDb.collection('gpsHistory').add({
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-        speed: payload.speed ?? 0,
-        battery: payload.battery,
-        temperature,
-        signalStrength,
-        timestamp: payload.timestamp || new Date().toISOString(),
-        deviceId: payload.deviceId,
-        livestockId: payload.livestockId,
-        farmUid,
-        createdAt: FieldValue.serverTimestamp(),
-      });
+      const historyTimestamp = payload.timestamp || new Date().toISOString();
+
+      // Uploads are at-least-once. If the TLS connection dies after we commit
+      // but before the collar reads our 200, the collar keeps the record and
+      // re-sends it on a later cycle — so the same reading arrives twice and
+      // the trail grows a phantom waypoint that also inflates the distance
+      // total. (deviceId, timestamp) identifies a reading uniquely: the
+      // firmware stamps each one from the GNSS solution, or from NTP.
+      const duplicate = await adminDb
+        .collection('gpsHistory')
+        .where('timestamp', '==', historyTimestamp)
+        .limit(10)
+        .get();
+
+      const alreadyStored = duplicate.docs.some((d) => d.data().deviceId === payload.deviceId);
+
+      if (alreadyStored) {
+        console.log(
+          `[upload] duplicate reading from ${payload.deviceId} at ${historyTimestamp} — ` +
+            `already stored, skipping gpsHistory write`,
+        );
+      } else {
+        await adminDb.collection('gpsHistory').add({
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          speed: payload.speed ?? 0,
+          battery: payload.battery,
+          temperature,
+          signalStrength,
+          timestamp: historyTimestamp,
+          deviceId: payload.deviceId,
+          livestockId: payload.livestockId,
+          farmUid,
+          // Real measurements the collar already sends and this route used to
+          // discard. gpsAccuracy is the receiver's own hAcc estimate, so it
+          // doubles as a confidence radius on the map.
+          gpsAccuracy: typeof payload.gpsAccuracy === 'number' ? payload.gpsAccuracy : null,
+          satellites: typeof payload.satellites === 'number' ? payload.satellites : null,
+          movement: typeof payload.movement === 'boolean' ? payload.movement : null,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
     }
 
     // 3. Update or Upsert Device Document

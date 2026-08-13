@@ -25,14 +25,33 @@ export async function getGpsHistory(
   const fromMs = options?.from ? options.from.getTime() : null;
   const toMs = options?.to ? options.to.getTime() : null;
 
+  // Guards against junk written before the ingestion API learned to reject it.
+  // One 0,0 row drags the whole trail ~6000 km to the Gulf of Guinea, and one
+  // unparseable timestamp sorts unpredictably and lands the polyline anywhere.
+  // Both were previously kept: the old NaN check returned true.
+  const seen = new Set<string>();
+
   let entries = snap.docs
     .map((d) => ({ id: d.id, ...d.data() }) as GpsHistoryEntry)
     .filter((e) => {
       if (e.livestockId !== livestockId) return false;
+
+      if (typeof e.latitude !== 'number' || typeof e.longitude !== 'number') return false;
+      if (e.latitude === 0 && e.longitude === 0) return false;
+
       const ms = new Date(e.timestamp).getTime();
-      if (Number.isNaN(ms)) return true;
+      if (Number.isNaN(ms)) return false;
       if (fromMs != null && ms < fromMs) return false;
       if (toMs != null && ms > toMs) return false;
+
+      // Uploads are at-least-once: a record whose acknowledgement was lost in
+      // transit gets re-sent and stored twice. Identical (device, timestamp)
+      // pairs are the same reading, and counting one twice both stacks a
+      // marker on the map and inflates calculateDistance below.
+      const key = `${e.deviceId}|${e.timestamp}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+
       return true;
     })
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
