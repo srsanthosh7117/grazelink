@@ -23,6 +23,94 @@ function normalizePayload(payload: TelemetryPayload) {
 }
 
 /**
+ * Whether this payload carries a usable position.
+ *
+ * The collar deliberately uploads NO_FIX records — they prove it is alive and
+ * carry battery/movement telemetry even when GNSS saw nothing. What they do
+ * NOT carry is a location: latitude and longitude are left at their 0.0
+ * defaults. Storing those as a real position drops the animal on Null Island,
+ * drags the livestock marker with it, and reads as thousands of kilometres
+ * outside any geofence.
+ */
+function hasUsablePosition(payload: TelemetryPayload): boolean {
+  if (payload.gpsStatus === 'NO_FIX') return false;
+  if (typeof payload.latitude !== 'number' || typeof payload.longitude !== 'number') return false;
+  if (Number.isNaN(payload.latitude) || Number.isNaN(payload.longitude)) return false;
+  // Exactly 0,0 is the firmware's unset default, not a real fix in the
+  // Gulf of Guinea. No livestock operation is plausibly located there.
+  if (payload.latitude === 0 && payload.longitude === 0) return false;
+  return true;
+}
+
+/**
+ * Resolves the livestock document for a collar, scoped to the collar's own farm.
+ *
+ * livestockId is only unique WITHIN a farm — generateLivestockId() numbers from
+ * GT-0001 per farm, so every farm's first animal is called GT-0001. The old
+ * lookup queried livestockId across the whole collection with `.limit(1)`, and
+ * Firestore promises no ordering without an orderBy, so a collar belonging to
+ * one farm could resolve to a different farm's animal, write its position into
+ * that document, and then adopt that farm's uid for the gpsHistory row and
+ * every alert that followed. One farm's herd would surface on a stranger's map.
+ *
+ * The farm match is therefore a hard filter, not a ranking: an authenticated
+ * collar never touches a document outside its own farm, and if nothing matches
+ * inside the farm we return null rather than reaching for the next best thing.
+ * Ordering within the farm is only to keep genuine intra-farm duplicates stable.
+ */
+async function resolveLivestockDoc(payload: TelemetryPayload, deviceFarmUid: string) {
+  const livestockRef = adminDb.collection('livestock');
+
+  let snap = await livestockRef.where('livestockId', '==', payload.livestockId).get();
+  if (snap.empty && payload.collarId) {
+    snap = await livestockRef.where('collarId', '==', payload.collarId).get();
+  }
+  if (snap.empty) return null;
+
+  // 'system' means the collar authenticated on the legacy shared key and has
+  // no farm of its own, so there is no boundary to enforce.
+  const scoped =
+    deviceFarmUid && deviceFarmUid !== 'system'
+      ? snap.docs.filter((d) => d.data().farmUid === deviceFarmUid)
+      : snap.docs;
+
+  if (scoped.length === 0) {
+    console.warn(
+      `[upload] livestockId=${payload.livestockId} exists but not under farm ${deviceFarmUid}; ` +
+        `refusing to write to another farm's document.`,
+    );
+    return null;
+  }
+
+  const toMs = (v: { toDate?: () => Date } | undefined) =>
+    v && typeof v.toDate === 'function' ? v.toDate().getTime() : 0;
+
+  const candidates = scoped.slice().sort((a, b) => {
+    const da = a.data();
+    const dbb = b.data();
+
+    const reportA = toMs(da.lastReportAt) > 0 ? 0 : 1;
+    const reportB = toMs(dbb.lastReportAt) > 0 ? 0 : 1;
+    if (reportA !== reportB) return reportA - reportB;
+
+    const createdA = toMs(da.createdAt);
+    const createdB = toMs(dbb.createdAt);
+    if (createdA !== createdB) return createdA - createdB;
+
+    return a.id < b.id ? -1 : 1;
+  });
+
+  if (candidates.length > 1) {
+    console.warn(
+      `[upload] ${candidates.length} livestock docs share livestockId=${payload.livestockId} ` +
+        `within farm ${deviceFarmUid}; using ${candidates[0].id}.`,
+    );
+  }
+
+  return candidates[0];
+}
+
+/**
  * POST /api/device/location
  * One-time GPS registration handshake (STATE: REGISTER in firmware).
  * A live fix flips the device to registrationStatus: 'gps_confirmed' and
@@ -84,52 +172,65 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
   try {
     const payload = req.body as TelemetryPayload;
     const { collarId, temperature, signalStrength } = normalizePayload(payload);
+    const positioned = hasUsablePosition(payload);
 
     // 1. Locate livestock document by livestockId or collarId
-    const livestockRef = adminDb.collection('livestock');
-    let livestockSnap = await livestockRef.where('livestockId', '==', payload.livestockId).limit(1).get();
-
-    if (livestockSnap.empty) {
-      livestockSnap = await livestockRef.where('collarId', '==', payload.collarId).limit(1).get();
-    }
-
     let farmUid = req.device?.farmUid || 'system';
     let livestockDocId: string | null = null;
 
-    if (!livestockSnap.empty) {
-      const doc = livestockSnap.docs[0];
-      livestockDocId = doc.id;
-      farmUid = doc.data().farmUid || farmUid;
+    const livestockDoc = await resolveLivestockDoc(payload, farmUid);
 
-      // Update Livestock Document with real-time telemetry
-      await doc.ref.update({
-        lat: payload.latitude,
-        lng: payload.longitude,
+    if (livestockDoc) {
+      livestockDocId = livestockDoc.id;
+      // Only adopt the document's farm when the collar had none of its own
+      // (legacy shared-key path). An authenticated collar keeps the farm it
+      // authenticated as — otherwise a mis-resolved document could redirect
+      // this farm's history and alerts into someone else's account.
+      if (!req.device?.farmUid) {
+        farmUid = livestockDoc.data().farmUid || farmUid;
+      }
+
+      // Update Livestock Document with real-time telemetry. A NO_FIX report
+      // still proves the collar is alive and still carries battery, so
+      // everything except the coordinates is written either way — the last
+      // known position is left standing rather than overwritten with 0,0.
+      const livestockUpdates: Record<string, unknown> = {
         battery: payload.battery,
         temperature,
         signalStrength,
         status: 'Online',
-        gpsStatus: 'Active',
+        gpsStatus: positioned ? 'Active' : 'No Fix',
         lastSeen: new Date().toLocaleTimeString(),
         lastReportAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-      });
+      };
+
+      if (positioned) {
+        livestockUpdates.lat = payload.latitude;
+        livestockUpdates.lng = payload.longitude;
+      }
+
+      await livestockDoc.ref.update(livestockUpdates);
     }
 
-    // 2. Store GPS History entry
-    await adminDb.collection('gpsHistory').add({
-      latitude: payload.latitude,
-      longitude: payload.longitude,
-      speed: payload.speed ?? 0,
-      battery: payload.battery,
-      temperature,
-      signalStrength,
-      timestamp: payload.timestamp || new Date().toISOString(),
-      deviceId: payload.deviceId,
-      livestockId: payload.livestockId,
-      farmUid,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    // 2. Store GPS History entry — only for real fixes. A NO_FIX row would be
+    // a fabricated 0,0 waypoint in the animal's trail and would corrupt the
+    // distance-travelled figure the analytics page derives from it.
+    if (positioned) {
+      await adminDb.collection('gpsHistory').add({
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        speed: payload.speed ?? 0,
+        battery: payload.battery,
+        temperature,
+        signalStrength,
+        timestamp: payload.timestamp || new Date().toISOString(),
+        deviceId: payload.deviceId,
+        livestockId: payload.livestockId,
+        farmUid,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
 
     // 3. Update or Upsert Device Document
     const devicesRef = adminDb.collection('devices');
@@ -152,8 +253,10 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
       // GPS registration handshake: the dashboard registers a collar as
       // 'pending' and blocks livestock-linking until this flip to 'gps_confirmed'.
       // The first live fix completes the handshake and is stored as the
-      // collar's initial location.
-      if (deviceData.registrationStatus !== 'gps_confirmed') {
+      // collar's initial location — a NO_FIX must not confirm it, or the
+      // handshake is satisfied by a collar that has never seen a satellite
+      // and the device is pinned to 0,0 forever.
+      if (deviceData.registrationStatus !== 'gps_confirmed' && positioned) {
         updates.registrationStatus = 'gps_confirmed';
         updates.initialLatitude = payload.latitude;
         updates.initialLongitude = payload.longitude;
@@ -172,9 +275,10 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         temperature,
         lastSync: new Date().toLocaleTimeString(),
         status: 'Online',
-        registrationStatus: 'gps_confirmed',
-        initialLatitude: payload.latitude,
-        initialLongitude: payload.longitude,
+        registrationStatus: positioned ? 'gps_confirmed' : 'pending',
+        ...(positioned
+          ? { initialLatitude: payload.latitude, initialLongitude: payload.longitude }
+          : {}),
         createdAt: FieldValue.serverTimestamp(),
       });
     }
@@ -182,8 +286,11 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
     // 4. Evaluate automated alerts
     await evaluateTelemetryAlerts(payload, farmUid, { temperature, collarId });
 
-    // 5. Server-side geofence enforcement (raises/resolves geofenceBreach alerts)
-    if (payload.livestockId && typeof payload.latitude === 'number' && typeof payload.longitude === 'number') {
+    // 5. Server-side geofence enforcement (raises/resolves geofenceBreach alerts).
+    // Skipped without a real fix: 0,0 sits ~6000 km off the coast of Africa,
+    // so every NO_FIX would read as a breach and alarm the farmer about an
+    // animal that is most likely standing exactly where it was.
+    if (positioned && payload.livestockId) {
       await evaluateGeofenceBreach({
         farmUid,
         livestockId: payload.livestockId,

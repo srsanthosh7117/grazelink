@@ -52,7 +52,30 @@ function createdAtMs(value: unknown): number {
   return Number.isNaN(t) ? 0 : t;
 }
 
-/** Registers a livestock under the given farm (uid) in top-level livestock collection. */export async function registerLivestock(farmUid: string, payload: LivestockPayload) {
+/**
+ * Registers a livestock under the given farm (uid) in top-level livestock
+ * collection.
+ *
+ * Rejects a livestockId the farm already uses. The ingestion API resolves a
+ * collar's telemetry by livestockId, so duplicates make it ambiguous which
+ * document receives a position — and a duplicate also shows up as a phantom
+ * second animal on the map, frozen at whatever coordinates it last held.
+ */
+export async function registerLivestock(farmUid: string, payload: LivestockPayload) {
+  if (payload.livestockId) {
+    const existing = await withTimeout(
+      getDocs(query(livestockRef, where('farmUid', '==', farmUid))),
+      15000,
+      TIMEOUT_MESSAGE,
+    );
+    const clash = existing.docs.some((d) => d.data().livestockId === payload.livestockId);
+    if (clash) {
+      throw new Error(
+        `Livestock ID "${payload.livestockId}" is already registered on this farm. Pick a different ID.`,
+      );
+    }
+  }
+
   return withTimeout(
     addDoc(livestockRef, { ...payload, farmUid, createdAt: serverTimestamp() }),
     15000,

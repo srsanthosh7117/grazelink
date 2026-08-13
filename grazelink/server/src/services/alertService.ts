@@ -29,7 +29,15 @@ export async function evaluateTelemetryAlerts(
   const livestockId = payload.livestockId;
 
   // --- Low battery -------------------------------------------------------
-  if (payload.battery < LOW_BATTERY_PCT) {
+  // A collar reporting exactly 0% while successfully uploading over Wi-Fi is
+  // not at 0% — it is a unit whose ADC divider is unwired or unpowered, which
+  // reads as zero. Treating that as an emergency buries the farmer in alerts
+  // about bench hardware. Firmware-side, BatteryMonitor::IsPresent() draws the
+  // same distinction; this is the server's own guard for collars that predate
+  // it or lose their divider in the field.
+  if (payload.battery === 0) {
+    // Nothing to raise and nothing to resolve — the reading is unusable.
+  } else if (payload.battery < LOW_BATTERY_PCT) {
     if (!(await hasOpenAlert(farmUid, livestockId, 'lowBattery'))) {
       await alertsRef.add({
         type: 'lowBattery',
