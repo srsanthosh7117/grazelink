@@ -1,0 +1,1 @@
+function r(t){return Number.isNaN(new Date(t).getTime())}function i(t,e="—"){return t?r(t)?t:new Date(t).toLocaleString(void 0,{day:"2-digit",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"}):e}function n(t){if(!t)return 0;const e=new Date(t).getTime();return Number.isNaN(e)?0:e}export{i as f,n as t};
