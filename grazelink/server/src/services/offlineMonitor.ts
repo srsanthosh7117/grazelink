@@ -1,5 +1,6 @@
 import { adminDb } from '../config/firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { hasOpenAlert } from './alertService.js';
 
 // How long a collar may go silent before its livestock is flagged offline.
 const OFFLINE_TIMEOUT_MS = Number(process.env.OFFLINE_TIMEOUT_MS || 10 * 60 * 1000);
@@ -58,15 +59,7 @@ export async function runOfflineCheck() {
       }
 
       if (livestockId) {
-        const existing = await alertsRef.where('livestockId', '==', livestockId).limit(20).get();
-        const alreadyOpen = existing.docs.some(
-          (alertDoc) =>
-            alertDoc.data().farmUid === farmUid &&
-            alertDoc.data().type === 'deviceOffline' &&
-            alertDoc.data().dismissed !== true,
-        );
-
-        if (!alreadyOpen) {
+        if (!(await hasOpenAlert(farmUid, livestockId, 'deviceOffline'))) {
           batch.set(alertsRef.doc(), {
             type: 'deviceOffline',
             severity: 'warning',

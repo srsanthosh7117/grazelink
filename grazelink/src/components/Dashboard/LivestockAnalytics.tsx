@@ -62,7 +62,13 @@ export default function LivestockAnalytics({ livestockId }: LivestockAnalyticsPr
     return d;
   }, [range]);
 
-  const { history, totalDistance, loading } = useGpsHistory(livestockId, { from: rangeFrom });
+  // pollMs: 0 — this is a historical summary over a fixed range, so it loads
+  // once. Live refresh is reserved for the GPS page's trail, where the extra
+  // reads buy something.
+  const { history, totalDistance, loading } = useGpsHistory(livestockId, {
+    from: rangeFrom,
+    pollMs: 0,
+  });
 
   const historyAsc = useMemo(
     () =>

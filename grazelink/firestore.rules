@@ -7,6 +7,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Per-farm settings (geofence safe zone), keyed by the farm's own uid.
+    // src/hooks/useFarmGeofence.ts subscribes to and writes this document;
+    // without a rule it fell under the default deny, so saving a safe zone
+    // failed and the map silently fell back to its localStorage default.
+    // The ingestion API reads it through the Admin SDK, which bypasses rules.
+    match /farmSettings/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Top-level Livestock collection
     match /livestock/{livestockId} {
       allow read, write: if request.auth != null && resource.data.farmUid == request.auth.uid;
