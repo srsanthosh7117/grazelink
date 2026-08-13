@@ -59,7 +59,7 @@ export default function Devices() {
       wifiSignal: -55,
       temperature: 37.5,
       status: 'Online',
-      lastSync: new Date().toLocaleTimeString(),
+      lastSync: new Date().toISOString(),
     });
     setModalOpen(true);
   };

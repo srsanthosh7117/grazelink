@@ -63,7 +63,11 @@ export async function runOfflineCheck() {
           batch.set(alertsRef.doc(), {
             type: 'deviceOffline',
             severity: 'warning',
-            message: `Collar ${data.collarId || livestockId} on livestock ${livestockId} stopped reporting. Last seen ${lastReport.toLocaleString()}.`,
+            // ISO-8601 with the Z suffix rather than toLocaleString(): this
+            // process runs in UTC, so a locale string would read as the
+            // farmer's local time while actually being hours off, with nothing
+            // in the text to reveal it.
+            message: `Collar ${data.collarId || livestockId} on livestock ${livestockId} stopped reporting. Last seen ${lastReport.toISOString()}.`,
             livestockId,
             deviceId: data.deviceId || null,
             farmUid,

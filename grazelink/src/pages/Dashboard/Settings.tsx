@@ -30,6 +30,7 @@ import { auth } from '@/services/firebase';
 import { deleteFarmAccount } from '@/services/deleteAccount';
 import { getAuthErrorMessage } from '@/utils/authErrors';
 import { withTimeout } from '@/utils/withTimeout';
+import { formatLocalDateTime } from '@/utils/datetime';
 
 function usePreference<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
@@ -244,7 +245,8 @@ export default function Settings() {
     ];
     const rows = livestock.map((g) => [
       g.livestockId, g.name, g.breed, g.gender, g.age, g.weight, g.healthStatus,
-      g.vaccinationStatus, g.shedName, g.status ?? '', g.battery ?? '', g.temperature ?? '', g.lastSeen ?? '',
+      g.vaccinationStatus, g.shedName, g.status ?? '', g.battery ?? '', g.temperature ?? '',
+      formatLocalDateTime(g.lastSeen, ''),
     ]);
     const csv = [headers, ...rows]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))

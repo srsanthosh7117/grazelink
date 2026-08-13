@@ -26,6 +26,7 @@ import { useDevices } from '@/hooks/useDevices';
 import { useAlerts } from '@/hooks/useAlerts';
 import { ALERT_COLORS } from '@/types/alert';
 import { getBatteryThreshold } from '@/utils/alertThresholds';
+import { toEpochMs } from '@/utils/datetime';
 
 interface MetricTileProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -104,9 +105,11 @@ export default function Overview() {
 
   const lastSyncLabel = (() => {
     if (devices.length === 0) return '—';
-    const times = devices
-      .map((d) => (d.lastSync ? new Date(d.lastSync).getTime() : 0))
-      .filter((t) => !Number.isNaN(t));
+    // toEpochMs yields 0 for the legacy bare-locale-time values ("10:51:34 AM")
+    // written before lastSync became ISO. Those used to parse as NaN, get
+    // filtered out, and leave this tile reporting "Just now" no matter how long
+    // a collar had actually been silent.
+    const times = devices.map((d) => toEpochMs(d.lastSync)).filter((t) => t > 0);
     if (times.length === 0) return 'Just now';
     const latest = Math.max(...times);
     const diff = Date.now() - latest;

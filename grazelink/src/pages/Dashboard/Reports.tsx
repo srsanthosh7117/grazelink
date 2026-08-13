@@ -6,6 +6,7 @@ import autoTable from 'jspdf-autotable';
 import EmptyState from '@/components/Dashboard/EmptyState';
 import { useAllLivestock } from '@/hooks/useAllLivestock';
 import { Livestock } from '@/types/livestock';
+import { formatLocalDateTime } from '@/utils/datetime';
 
 type Range = 'Daily' | 'Weekly' | 'Monthly' | 'Custom';
 
@@ -220,7 +221,7 @@ export default function Reports() {
                     <td className="py-3 pr-4">{g.status ?? 'Offline'}</td>
                     <td className="py-3 pr-4">{g.battery != null ? `${g.battery}%` : '—'}</td>
                     <td className="py-3 pr-4">{g.temperature != null ? `${g.temperature}°C` : '—'}</td>
-                    <td className="py-3 pr-4 text-muted dark:text-dark-muted">{g.lastSeen || '—'}</td>
+                    <td className="py-3 pr-4 text-muted dark:text-dark-muted">{formatLocalDateTime(g.lastSeen)}</td>
                   </tr>
                 ))}
               </tbody>

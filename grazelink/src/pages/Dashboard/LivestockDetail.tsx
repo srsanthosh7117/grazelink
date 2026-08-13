@@ -24,6 +24,7 @@ import { deleteLivestock } from '@/services/livestock';
 import AddLivestockModal from '@/components/Dashboard/AddLivestockModal';
 import LivestockAnalytics from '@/components/Dashboard/LivestockAnalytics';
 import { useToast } from '@/context/ToastContext';
+import { formatLocalDateTime } from '@/utils/datetime';
 
 function formatRegistrationTime(value: unknown): string {
   if (!value) return '—';
@@ -282,7 +283,9 @@ export default function LivestockDetail() {
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-surface-light p-3 dark:bg-dark-surface">
                     <span className="text-muted dark:text-dark-muted">Last Sync</span>
-                    <span className="font-semibold text-ink dark:text-gray-200">{device.lastSync || 'Never'}</span>
+                    <span className="font-semibold text-ink dark:text-gray-200">
+                      {formatLocalDateTime(device.lastSync, 'Never')}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl bg-surface-light p-3 dark:bg-dark-surface">
                     <span className="text-muted dark:text-dark-muted">GPS Registration</span>
@@ -395,7 +398,7 @@ export default function LivestockDetail() {
                     Latitude: {livestock.lat.toFixed(5)}, Longitude: {livestock.lng.toFixed(5)}
                   </p>
                   <p className="mt-0.5 text-xs text-muted dark:text-dark-muted">
-                    Last synchronized: {livestock.lastSeen || 'Unknown'}
+                    Last synchronized: {formatLocalDateTime(livestock.lastSeen, 'Unknown')}
                   </p>
                 </div>
                 <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">

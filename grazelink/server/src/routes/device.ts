@@ -200,7 +200,8 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         signalStrength,
         status: 'Online',
         gpsStatus: positioned ? 'Active' : 'No Fix',
-        lastSeen: new Date().toLocaleTimeString(),
+        // ISO-8601 UTC — see the note on lastSync below. The browser formats it.
+        lastSeen: new Date().toISOString(),
         lastReportAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       };
@@ -272,7 +273,10 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         battery: payload.battery,
         wifiSignal: signalStrength,
         temperature,
-        lastSync: new Date().toLocaleTimeString(),
+        // ISO-8601 UTC, not a locale string. This process runs in UTC on
+        // Render, so formatting here would bake a timezone-less UTC clock time
+        // into the field and every dashboard would display it as if local.
+        lastSync: new Date().toISOString(),
         status: 'Online',
         collarId,
         livestockId: payload.livestockId,
@@ -302,7 +306,10 @@ router.post('/upload', validateDevice, validatePayload, async (req: Request, res
         battery: payload.battery,
         wifiSignal: signalStrength,
         temperature,
-        lastSync: new Date().toLocaleTimeString(),
+        // ISO-8601 UTC, not a locale string. This process runs in UTC on
+        // Render, so formatting here would bake a timezone-less UTC clock time
+        // into the field and every dashboard would display it as if local.
+        lastSync: new Date().toISOString(),
         status: 'Online',
         registrationStatus: positioned ? 'gps_confirmed' : 'pending',
         ...(positioned
