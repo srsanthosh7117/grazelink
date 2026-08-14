@@ -69,6 +69,32 @@ const TILE_STYLES: Record<TileStyle, { url: string; attribution: string; label: 
 /** Distinct hues so each collar's trail is tellable apart when all are plotted. */
 const TRAIL_COLORS = ['#E8B23C', '#38BDF8', '#A78BFA', '#34D399', '#F472B6', '#FB923C', '#22D3EE', '#A3E635'];
 
+/**
+ * Break the trail wherever consecutive fixes are more than this far apart in
+ * time. The collar samples every 20 min while roaming and goes silent for
+ * 30-min stretches at the barn, so a straight line drawn across a multi-hour
+ * gap is fiction — it implies travel that was never recorded. Splitting at
+ * ~2.5x the roam interval keeps each grazing excursion its own clean segment.
+ */
+const MAX_TRAIL_GAP_MS = 50 * 60 * 1000;
+
+/** Split chronological points into runs unbroken by a long time gap. */
+function splitSegments(points: CollarTrailPoint[], maxGapMs: number): CollarTrailPoint[][] {
+  if (points.length === 0) return [];
+  const segs: CollarTrailPoint[][] = [];
+  let cur: CollarTrailPoint[] = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].ts - points[i - 1].ts > maxGapMs) {
+      segs.push(cur);
+      cur = [points[i]];
+    } else {
+      cur.push(points[i]);
+    }
+  }
+  segs.push(cur);
+  return segs;
+}
+
 function pinColorFor(livestock: Livestock, breached: boolean): string {
   if (breached) return '#EF4444';
   if (livestock.battery != null && livestock.battery < getBatteryThreshold()) return '#F59E0B';
@@ -516,61 +542,76 @@ export default function TrackingMap({
           />
         )}
 
-        {/* Every collar's full trail — line, direction arrows, start & current dots */}
+        {/* Every collar's trail — cased line per gap-free segment, arrows, dots */}
         {filteredTrails.map((trail) => {
           const pts = trail.points.filter((p) => p.lat != null && p.lng != null);
           if (pts.length < 1) return null;
-          const latLngs = pts.map((p) => [p.lat, p.lng] as LatLng);
           const isSelected = singleSelected && trail.livestockId === selectedLivestockId;
           const dimmed = singleSelected && !isSelected;
           const color = trailColor(trail.livestockId);
-          const first = latLngs[0];
-          const last = latLngs[latLngs.length - 1];
-          // Wider arrow spacing when zoomed out / many collars, tighter when focused.
-          const arrows = dimmed ? [] : trailArrows(pts, isSelected ? 12 : 20);
+          const first = pts[0];
+          const last = pts[pts.length - 1];
+          const coreW = isSelected ? 5 : 3.5;
+          const coreOpacity = dimmed ? 0.3 : isSelected ? 0.98 : 0.75;
+          const segments = splitSegments(pts, MAX_TRAIL_GAP_MS);
           return (
             <div key={trail.livestockId}>
-              {latLngs.length > 1 && (
-                <Polyline
-                  positions={latLngs}
-                  pathOptions={{
-                    color,
-                    weight: isSelected ? 5 : 3,
-                    opacity: dimmed ? 0.25 : isSelected ? 0.95 : 0.6,
-                    lineCap: 'round',
-                    lineJoin: 'round',
-                  }}
-                />
-              )}
-
-              {/* Direction-of-travel arrows */}
-              {arrows.map((a, i) => (
-                <Marker
-                  key={`arrow-${i}`}
-                  position={[a.lat, a.lng]}
-                  icon={makeArrowIcon(color, a.bearing, isSelected)}
-                  interactive={false}
-                  keyboard={false}
-                />
-              ))}
+              {segments.map((seg, si) => {
+                if (seg.length < 2) return null;
+                const line = seg.map((p) => [p.lat, p.lng] as LatLng);
+                // Wider arrow spacing when zoomed out / many collars, tighter when focused.
+                const arrows = dimmed ? [] : trailArrows(seg, isSelected ? 12 : 20);
+                return (
+                  <div key={si}>
+                    {/* Soft outer glow under the selected collar */}
+                    {isSelected && (
+                      <Polyline
+                        positions={line}
+                        pathOptions={{ color, weight: coreW + 8, opacity: 0.16, lineCap: 'round', lineJoin: 'round' }}
+                      />
+                    )}
+                    {/* Dark casing — makes the coloured core pop on any basemap */}
+                    <Polyline
+                      positions={line}
+                      pathOptions={{
+                        color: '#0b1220',
+                        weight: coreW + 3,
+                        opacity: dimmed ? 0.12 : 0.35,
+                        lineCap: 'round',
+                        lineJoin: 'round',
+                      }}
+                    />
+                    {/* Coloured core */}
+                    <Polyline
+                      positions={line}
+                      pathOptions={{ color, weight: coreW, opacity: coreOpacity, lineCap: 'round', lineJoin: 'round' }}
+                    />
+                    {/* Direction-of-travel arrows */}
+                    {arrows.map((a, i) => (
+                      <Marker
+                        key={`arrow-${i}`}
+                        position={[a.lat, a.lng]}
+                        icon={makeArrowIcon(color, a.bearing, isSelected)}
+                        interactive={false}
+                        keyboard={false}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
 
               {/* Start of trail (hollow) */}
-              {latLngs.length > 1 && (
+              {pts.length > 1 && (
                 <CircleMarker
-                  center={first}
+                  center={[first.lat, first.lng]}
                   radius={4}
-                  pathOptions={{
-                    color,
-                    weight: 2,
-                    fillColor: '#ffffff',
-                    fillOpacity: dimmed ? 0.3 : 0.9,
-                  }}
+                  pathOptions={{ color, weight: 2, fillColor: '#ffffff', fillOpacity: dimmed ? 0.3 : 0.9 }}
                 />
               )}
 
-              {/* Current position (filled) */}
+              {/* Current / last position (filled) */}
               <CircleMarker
-                center={last}
+                center={[last.lat, last.lng]}
                 radius={isSelected ? 6 : 4}
                 pathOptions={{
                   color: '#ffffff',

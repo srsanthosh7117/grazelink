@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiMapPin, FiBatteryCharging, FiThermometer, FiZap, FiCheckCircle, FiAlertTriangle, FiTrendingUp, FiCompass } from 'react-icons/fi';
+import { FiMapPin, FiBatteryCharging, FiThermometer, FiZap, FiCheckCircle, FiAlertTriangle, FiTrendingUp, FiCompass, FiChevronLeft, FiChevronRight, FiRadio } from 'react-icons/fi';
 import EmptyState from '@/components/Dashboard/EmptyState';
 import TrackingMap, { CollarTrail } from '@/components/Dashboard/TrackingMap';
 import { useLivestock } from '@/hooks/useLivestock';
@@ -26,6 +26,39 @@ function compassHeading(bearing: number): string {
   return `${dirs[Math.round(norm / 45) % 8]}`;
 }
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** Local-time YYYY-MM-DD for a Date (not UTC — the farmer's calendar day). */
+function toDayStr(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Start/end instants of a local calendar day, for the history query window. */
+function dayBounds(dayStr: string): { from: Date; to: Date } {
+  const [y, m, d] = dayStr.split('-').map(Number);
+  return {
+    from: new Date(y, m - 1, d, 0, 0, 0, 0),
+    to: new Date(y, m - 1, d, 23, 59, 59, 999),
+  };
+}
+
+/** Shift a YYYY-MM-DD string by whole days. */
+function shiftDay(dayStr: string, delta: number): string {
+  const [y, m, d] = dayStr.split('-').map(Number);
+  return toDayStr(new Date(y, m - 1, d + delta));
+}
+
+function prettyDay(dayStr: string, todayStr: string): string {
+  if (dayStr === todayStr) return 'Today';
+  if (dayStr === shiftDay(todayStr, -1)) return 'Yesterday';
+  const [y, m, d] = dayStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
 export default function GPSTracking() {
   const { livestock, loading } = useLivestock();
   const { radiusM, enabled, center: savedCenter } = useFarmGeofence();
@@ -33,14 +66,28 @@ export default function GPSTracking() {
 
   const [selectedLivestockId, setSelectedLivestockId] = useState<string>('all');
 
+  const todayStr = useMemo(() => toDayStr(new Date()), []);
+  const [selectedDay, setSelectedDay] = useState<string>(todayStr);
+  const isToday = selectedDay === todayStr;
+
   const located = useMemo(() => livestock.filter((g) => g.lat != null && g.lng != null), [livestock]);
   const center = useMemo(() => savedCenter ?? farmCenterOf(livestock), [savedCenter, livestock]);
 
   const activeLivestock =
     selectedLivestockId !== 'all' ? located.find((g) => g.livestockId === selectedLivestockId) : located[0];
 
-  // One farm-wide query, grouped per collar — lets us plot every trail at once.
-  const { groups } = useAllGpsHistory();
+  // Memoised so the from/to Date identities are stable across renders (they are
+  // effect deps in the hook — fresh instances every render would refetch forever).
+  const { from, to } = useMemo(() => dayBounds(selectedDay), [selectedDay]);
+
+  // One farm-wide query for the chosen day, grouped per collar. Live-poll only
+  // for today; a past day is immutable, so fetch it once.
+  const { groups, loading: historyLoading } = useAllGpsHistory({
+    from,
+    to,
+    maxEntries: 1500,
+    pollMs: isToday ? undefined : 0,
+  });
 
   const activeEntries = useMemo(() => {
     if (!activeLivestock) return [];
@@ -75,6 +122,9 @@ export default function GPSTracking() {
     return all;
   }, [groups]);
 
+  const dayTrailCount = trails.length;
+  const dayPointCount = useMemo(() => trails.reduce((s, t) => s + t.points.length, 0), [trails]);
+
   const breachCount = useMemo(() => {
     if (!center || !enabled) return 0;
     return located.filter((g) => geofenceStatus(g, center, radiusM).breached).length;
@@ -90,15 +140,78 @@ export default function GPSTracking() {
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink dark:text-white md:text-3xl">
-            Live GPS Tracking &amp; Geofencing
+          <h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-ink dark:text-white md:text-3xl">
+            GPS Tracking &amp; Geofencing
+            {isToday ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-70" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                LIVE
+              </span>
+            ) : (
+              <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                HISTORY
+              </span>
+            )}
           </h1>
           <p className="mt-1 text-sm text-muted dark:text-dark-muted">
-            Interactive 2D map with a live trail, moving collars and an automated geofence safe zone.
+            {isToday
+              ? 'Live trail, moving collars and an automated geofence safe zone.'
+              : `Showing the recorded trail for ${prettyDay(selectedDay, todayStr)}.`}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Day picker — jump to any recorded day's tracking */}
+          <div className="flex items-center gap-1 rounded-2xl border border-black/10 bg-white p-1 shadow-soft dark:border-white/10 dark:bg-dark-card">
+            <button
+              onClick={() => setSelectedDay((d) => shiftDay(d, -1))}
+              title="Previous day"
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition-colors hover:bg-black/5 hover:text-primary dark:text-dark-muted dark:hover:bg-white/10"
+            >
+              <FiChevronLeft />
+            </button>
+            <input
+              type="date"
+              value={selectedDay}
+              max={todayStr}
+              onChange={(e) => e.target.value && setSelectedDay(e.target.value)}
+              className="bg-transparent px-1 text-sm font-semibold text-ink outline-none dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
+            />
+            <button
+              onClick={() => setSelectedDay((d) => shiftDay(d, 1))}
+              disabled={isToday}
+              title="Next day"
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition-colors hover:bg-black/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-30 dark:text-dark-muted dark:hover:bg-white/10"
+            >
+              <FiChevronRight />
+            </button>
+            {!isToday && (
+              <button
+                onClick={() => setSelectedDay(todayStr)}
+                title="Back to today's live view"
+                className="ml-0.5 flex h-8 items-center gap-1 rounded-xl bg-primary px-2.5 text-[11px] font-bold text-white transition-colors hover:bg-primary-dark"
+              >
+                <FiRadio className="text-xs" /> Live
+              </button>
+            )}
+          </div>
+
+          <span className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-xs font-bold shadow-soft dark:border-white/10 dark:bg-dark-card">
+            {historyLoading ? (
+              <span className="text-muted dark:text-dark-muted">Loading day…</span>
+            ) : dayPointCount > 0 ? (
+              <span className="text-ink dark:text-white">
+                <span className="text-primary">{dayPointCount}</span> fixes ·{' '}
+                {dayTrailCount} trail{dayTrailCount === 1 ? '' : 's'}
+              </span>
+            ) : (
+              <span className="text-muted dark:text-dark-muted">No fixes recorded this day</span>
+            )}
+          </span>
+
           {center && (
             <span className="rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-xs font-bold text-ink shadow-soft dark:border-white/10 dark:bg-dark-card dark:text-white">
               Safe zone: {radiusM} m{enabled ? ' · server-enforced' : ''} ·{' '}
