@@ -510,14 +510,31 @@ export default function TrackingMap({
       <MapContainer
         center={selectedPosition ?? positions[0] ?? (center ? [center.lat, center.lng] : [11.1, 77.1])}
         zoom={16}
-        maxZoom={20}
+        // OSM/CARTO/Esri publish tiles only up to zoom 19 (terrain to 17); a
+        // request at 20 comes back HTTP 400, leaving the dark container showing
+        // through. Cap at 19 so the deepest zoom always has real tiles. At 19
+        // that's already ~0.3 m/pixel — finer than the collar's GPS accuracy.
+        maxZoom={19}
         worldCopyJump
         scrollWheelZoom
         zoomControl={false}
         attributionControl
         className="h-full w-full"
       >
-        <TileLayer key={tileStyle} url={tile.url} attribution={tile.attribution} maxNativeZoom={tile.maxNativeZoom} noWrap />
+        <TileLayer
+          key={tileStyle}
+          url={tile.url}
+          attribution={tile.attribution}
+          maxNativeZoom={tile.maxNativeZoom}
+          noWrap
+          // Don't refetch tiles mid-zoom: scale the ones we have and load the
+          // new level only once the animation settles. Prevents the dark
+          // container flashing through the gaps during a zoom-in.
+          updateWhenZooming={false}
+          // Keep a wide ring of tiles cached around the viewport so panning and
+          // zooming rarely expose an unpainted (dark) edge.
+          keepBuffer={6}
+        />
         {/* Zoom lives bottom-right: top-left is taken by the search box. */}
         <ZoomControl position="bottomright" />
         <ScaleControl position="bottomright" imperial={false} />
