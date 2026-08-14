@@ -9,13 +9,13 @@ import { GpsHistoryEntry } from '@/types/gpsHistory';
 
 const gpsRef = collection(db, 'gpsHistory');
 
-/**
- * Fetches GPS history for a specific livestock within an optional date range.
- * Uses a single-field `farmUid` filter (no composite index required) and
- * filters/sorts client-side.
- */
-export async function getGpsHistory(
-  livestockId: string,
+export interface FarmHistoryGroup {
+  livestockId: string;
+  entries: GpsHistoryEntry[];
+}
+
+/** Shared fetch+clean pipeline: one farm-wide query, then client-side guards. */
+async function fetchFarmHistory(
   farmUid: string,
   options?: { from?: Date; to?: Date; maxEntries?: number },
 ): Promise<GpsHistoryEntry[]> {
@@ -25,17 +25,11 @@ export async function getGpsHistory(
   const fromMs = options?.from ? options.from.getTime() : null;
   const toMs = options?.to ? options.to.getTime() : null;
 
-  // Guards against junk written before the ingestion API learned to reject it.
-  // One 0,0 row drags the whole trail ~6000 km to the Gulf of Guinea, and one
-  // unparseable timestamp sorts unpredictably and lands the polyline anywhere.
-  // Both were previously kept: the old NaN check returned true.
   const seen = new Set<string>();
 
   let entries = snap.docs
     .map((d) => ({ id: d.id, ...d.data() }) as GpsHistoryEntry)
     .filter((e) => {
-      if (e.livestockId !== livestockId) return false;
-
       if (typeof e.latitude !== 'number' || typeof e.longitude !== 'number') return false;
       if (e.latitude === 0 && e.longitude === 0) return false;
 
@@ -44,10 +38,6 @@ export async function getGpsHistory(
       if (fromMs != null && ms < fromMs) return false;
       if (toMs != null && ms > toMs) return false;
 
-      // Uploads are at-least-once: a record whose acknowledgement was lost in
-      // transit gets re-sent and stored twice. Identical (device, timestamp)
-      // pairs are the same reading, and counting one twice both stacks a
-      // marker on the map and inflates calculateDistance below.
       const key = `${e.deviceId}|${e.timestamp}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -60,6 +50,45 @@ export async function getGpsHistory(
   if (entries.length > max) entries = entries.slice(0, max);
 
   return entries;
+}
+
+/**
+ * Fetches GPS history for a specific livestock within an optional date range.
+ * Uses a single-field `farmUid` filter (no composite index required) and
+ * filters/sorts client-side.
+ */
+export async function getGpsHistory(
+  livestockId: string,
+  farmUid: string,
+  options?: { from?: Date; to?: Date; maxEntries?: number },
+): Promise<GpsHistoryEntry[]> {
+  const all = await fetchFarmHistory(farmUid, options);
+  const filtered = all.filter((e) => e.livestockId === livestockId);
+  const max = options?.maxEntries ?? 500;
+  return filtered.length > max ? filtered.slice(0, max) : filtered;
+}
+
+/**
+ * Fetches the farm's entire GPS history in one query and groups it per
+ * livestock — used by the map's "all collars" view so every trail can be
+ * plotted in a single round trip instead of one query per collar.
+ */
+export async function getAllGpsHistory(
+  farmUid: string,
+  options?: { from?: Date; to?: Date; maxEntries?: number },
+): Promise<FarmHistoryGroup[]> {
+  const all = await fetchFarmHistory(farmUid, options);
+  const byLivestock = new Map<string, GpsHistoryEntry[]>();
+  for (const e of all) {
+    const list = byLivestock.get(e.livestockId) ?? [];
+    list.push(e);
+    byLivestock.set(e.livestockId, list);
+  }
+  const max = options?.maxEntries ?? 300;
+  return [...byLivestock.entries()].map(([livestockId, entries]) => ({
+    livestockId,
+    entries: entries.slice(0, max),
+  }));
 }
 
 /** Calculates total distance in km from GPS entries using Haversine formula. */

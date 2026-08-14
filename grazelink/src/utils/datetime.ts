@@ -50,3 +50,35 @@ export function toEpochMs(value?: string | null): number {
   const ms = new Date(value).getTime();
   return Number.isNaN(ms) ? 0 : ms;
 }
+
+const IST = 'Asia/Kolkata';
+
+/**
+ * Time only, always in Indian Standard Time (UTC+5:30), e.g. "10:21 am".
+ * The GrazeLink farm fleet reports fixes in IST; forcing the zone keeps the
+ * map's trail-window readout and popups consistent regardless of the
+ * browser/device timezone.
+ */
+export function formatIstTime(value: string | number, fallback = '—'): string {
+  const ms = typeof value === 'number' ? value : new Date(value).getTime();
+  if (Number.isNaN(ms)) return fallback;
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: IST,
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(ms);
+}
+
+/** Date + time in IST, e.g. "13 Aug 2026, 10:21 am". */
+export function formatIstDateTime(value: string | number, fallback = '—'): string {
+  const ms = typeof value === 'number' ? value : new Date(value).getTime();
+  if (Number.isNaN(ms)) return fallback;
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: IST,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(ms);
+}

@@ -77,6 +77,109 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Google-Maps-style teardrop collar pin (TrackingMap). Rendered via L.divIcon. */
+.gzl-pin-wrapper {
+  background: transparent;
+  border: none;
+}
+.gzl-pin {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--pin-color, #22c55e);
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+}
+.gzl-pin::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.gzl-pin-selected {
+  width: 26px;
+  height: 26px;
+  border-width: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+/* Permanent collar name labels on the map (TrackingMap). */
+.gzl-marker-tip.leaflet-tooltip {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 1px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #111827;
+  text-shadow:
+    0 1px 2px rgba(255, 255, 255, 0.95),
+    0 0 4px rgba(255, 255, 255, 0.9);
+}
+.dark .gzl-marker-tip.leaflet-tooltip {
+  color: #f9fafb;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.9),
+    0 0 5px rgba(0, 0, 0, 0.85);
+}
+
+/* Dual-thumb range slider (Trail time window, TrackingMap).
+   Both inputs are stacked; only their thumbs receive pointer events. */
+.gzl-range-dual {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 20px;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+.gzl-range-dual:focus {
+  outline: none;
+}
+.gzl-range-dual::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+}
+.gzl-range-dual::-moz-range-track {
+  height: 4px;
+  background: transparent;
+}
+.gzl-range-dual::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  height: 15px;
+  width: 15px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #2563eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+.gzl-range-dual::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+.gzl-range-dual::-moz-range-thumb {
+  pointer-events: auto;
+  height: 15px;
+  width: 15px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 2px solid #2563eb;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+
 /* Table dark mode polish */
 .dark table th {
   background-color: #111827;
