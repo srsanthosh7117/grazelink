@@ -85,6 +85,64 @@ function makePinIcon(color: string, selected: boolean): L.DivIcon {
   });
 }
 
+/** Initial compass bearing (deg, 0 = north) from point a to point b. */
+function bearingDeg(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLon = toRad(lon2 - lon1);
+  const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+  const x =
+    Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+  return (Math.atan2(y, x) * 180) / Math.PI;
+}
+
+/** A chevron pointing along the direction of travel, rotated to `bearing`. */
+function makeArrowIcon(color: string, bearing: number, emphasized: boolean): L.DivIcon {
+  const size = emphasized ? 18 : 14;
+  return L.divIcon({
+    className: 'gzl-arrow',
+    html:
+      `<div style="transform:rotate(${bearing}deg);width:${size}px;height:${size}px;` +
+      `display:flex;align-items:center;justify-content:center">` +
+      `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" ` +
+      `stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" ` +
+      `style="filter:drop-shadow(0 0 1px rgba(0,0,0,0.55))">` +
+      `<path d="M12 4 L20 20 L12 15 L4 20 Z" fill="${color}" stroke="none"/></svg></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+/**
+ * Direction arrows sampled at even ground-distance spacing along a trail.
+ *
+ * Sampling by cumulative metres (not per point) means a near-stationary collar
+ * — whose fixes pile onto the same spot — produces no arrows and declutters to
+ * a clean line, while a moving one gets evenly spaced heading markers no matter
+ * how dense or sparse its fixes are.
+ */
+function trailArrows(
+  points: CollarTrailPoint[],
+  spacingM: number,
+): Array<{ lat: number; lng: number; bearing: number }> {
+  const out: Array<{ lat: number; lng: number; bearing: number }> = [];
+  if (points.length < 2) return out;
+
+  // Anchor on straight-line displacement, not path length: an arrow appears
+  // only once the collar has actually moved `spacingM` from the last anchor,
+  // so jitter that wanders back and forth around one spot never triggers one.
+  let anchor = points[0];
+  for (let i = 1; i < points.length; i++) {
+    const b = points[i];
+    const displM = haversine(anchor.lat, anchor.lng, b.lat, b.lng) * 1000;
+    if (displM >= spacingM) {
+      out.push({ lat: b.lat, lng: b.lng, bearing: bearingDeg(anchor.lat, anchor.lng, b.lat, b.lng) });
+      anchor = b;
+    }
+  }
+  return out;
+}
+
 function timeAgo(iso?: string): string {
   if (!iso) return 'N/A';
   const ms = new Date(iso).getTime();
@@ -458,14 +516,18 @@ export default function TrackingMap({
           />
         )}
 
-        {/* Every collar's full trail — line plus a dot at each recorded point */}
+        {/* Every collar's full trail — line, direction arrows, start & current dots */}
         {filteredTrails.map((trail) => {
-          const latLngs = trail.points
-            .filter((p) => p.lat != null && p.lng != null)
-            .map((p) => [p.lat, p.lng] as LatLng);
-          if (latLngs.length < 1) return null;
+          const pts = trail.points.filter((p) => p.lat != null && p.lng != null);
+          if (pts.length < 1) return null;
+          const latLngs = pts.map((p) => [p.lat, p.lng] as LatLng);
           const isSelected = singleSelected && trail.livestockId === selectedLivestockId;
+          const dimmed = singleSelected && !isSelected;
           const color = trailColor(trail.livestockId);
+          const first = latLngs[0];
+          const last = latLngs[latLngs.length - 1];
+          // Wider arrow spacing when zoomed out / many collars, tighter when focused.
+          const arrows = dimmed ? [] : trailArrows(pts, isSelected ? 12 : 20);
           return (
             <div key={trail.livestockId}>
               {latLngs.length > 1 && (
@@ -474,28 +536,49 @@ export default function TrackingMap({
                   pathOptions={{
                     color,
                     weight: isSelected ? 5 : 3,
-                    opacity: singleSelected && !isSelected ? 0.25 : isSelected ? 0.95 : 0.6,
+                    opacity: dimmed ? 0.25 : isSelected ? 0.95 : 0.6,
                     lineCap: 'round',
                     lineJoin: 'round',
                   }}
                 />
               )}
-              {latLngs.map((p, i) => {
-                const isLast = i === latLngs.length - 1;
-                return (
-                  <CircleMarker
-                    key={i}
-                    center={p}
-                    radius={isLast ? (isSelected ? 6 : 4) : 3}
-                    pathOptions={{
-                      color: '#ffffff',
-                      weight: 1.5,
-                      fillColor: isSelected ? color : isLast ? color : color,
-                      fillOpacity: isSelected ? 1 : singleSelected && !isSelected ? 0.35 : isLast ? 0.9 : 0.55,
-                    }}
-                  />
-                );
-              })}
+
+              {/* Direction-of-travel arrows */}
+              {arrows.map((a, i) => (
+                <Marker
+                  key={`arrow-${i}`}
+                  position={[a.lat, a.lng]}
+                  icon={makeArrowIcon(color, a.bearing, isSelected)}
+                  interactive={false}
+                  keyboard={false}
+                />
+              ))}
+
+              {/* Start of trail (hollow) */}
+              {latLngs.length > 1 && (
+                <CircleMarker
+                  center={first}
+                  radius={4}
+                  pathOptions={{
+                    color,
+                    weight: 2,
+                    fillColor: '#ffffff',
+                    fillOpacity: dimmed ? 0.3 : 0.9,
+                  }}
+                />
+              )}
+
+              {/* Current position (filled) */}
+              <CircleMarker
+                center={last}
+                radius={isSelected ? 6 : 4}
+                pathOptions={{
+                  color: '#ffffff',
+                  weight: 1.5,
+                  fillColor: color,
+                  fillOpacity: dimmed ? 0.35 : isSelected ? 1 : 0.9,
+                }}
+              />
             </div>
           );
         })}
