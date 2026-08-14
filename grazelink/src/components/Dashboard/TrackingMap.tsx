@@ -510,11 +510,11 @@ export default function TrackingMap({
       <MapContainer
         center={selectedPosition ?? positions[0] ?? (center ? [center.lat, center.lng] : [11.1, 77.1])}
         zoom={16}
-        // OSM/CARTO/Esri publish tiles only up to zoom 19 (terrain to 17); a
-        // request at 20 comes back HTTP 400, leaving the dark container showing
-        // through. Cap at 19 so the deepest zoom always has real tiles. At 19
-        // that's already ~0.3 m/pixel — finer than the collar's GPS accuracy.
-        maxZoom={19}
+        // Cap zoom-in at level 18 (~"50 m" on the scale bar at this latitude).
+        // Basemaps only serve tiles to 19 anyway (a z20 request 400s and shows
+        // the dark container), and z18 keeps the imagery crisp rather than
+        // over-zoomed into sparse rural tiles.
+        maxZoom={18}
         worldCopyJump
         scrollWheelZoom
         zoomControl={false}
