@@ -19,7 +19,21 @@ const PORT = process.env.PORT || 5000;
 
 // Security & Logging Middlewares
 app.use(helmet());
-app.use(cors());
+
+// CORS is browser-enforced only; the ESP32 firmware calls this API directly
+// over TLS, so it is unaffected by these settings. The allowlist exists to
+// stop a random website from issuing credentialed requests to this backend on
+// behalf of a logged-in dashboard user.
+const defaultOrigins = [
+  'https://srsanthosh7117.github.io',            // production dashboard (GitHub Pages)
+  'http://localhost:5173',                      // vite dev server
+  'http://127.0.0.1:5173',
+];
+const allowedOrigins = (process.env.CORS_ORIGINS || defaultOrigins.join(','))
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(morgan('dev'));
 

@@ -1,0 +1,13 @@
+# Secrets — never commit
+.env
+.env.local
+*.env
+serviceAccountKey.json
+service-account*.json
+firebase-adminsdk*.json
+*.pem
+*.key
+
+# Dependencies / build
+node_modules
+dist
